@@ -5,7 +5,7 @@
 import numpy as np
 
 from utils import load_backbone
-from dataset_.prep_batch_fns import basic_flexible_prep_batch, prep_batch_fixed, prep_var_eval_1d
+from dataset_.prep_batch_fns import basic_flexible_prep_batch
 from dataset_.dataset_classes.FastDataLoader import FastDataLoader
 from dataset_.dataset_classes.PathFinderSet import PathFinderSet
 from dataset_.dataset_classes.FullSetWrapper import FullSetWrapper
@@ -105,16 +105,21 @@ def single_dataset_run(params, data_params, model_file_path, device):
     #########################
     # FEW-SHOT PROBLEM
     #########################
-    fs_dataset = FullSetWrapper(full_set=features, labels=labels)
+    fs_dataset = FullSetWrapper(full_set=features, labels=labels.cpu())
 
 
 
     for hardness in params['task']['hardness']:
+
+        print(hardness)
+
         fs_class = FewShotClassification(dataset=fs_dataset,
             params=params,
             model_fc_out=params['model'][ params['model']['name'] ]['encoder_fc_dim'],
-            prep_batch=,
             device=device,
-            variable,
-            hardness=hardness
+            variable=data_params['target_data']['variable'],
+            hardness=hardness,
+            additional_fn=extra_batch_work
             )
+
+        accs = fs_class.eval()

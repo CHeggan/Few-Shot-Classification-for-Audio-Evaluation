@@ -5,8 +5,8 @@ An largely enclosed few-shot classification class with accompanying methods. Set
     around classifiers, and task samplers
 """
 import numpy as np
+from tqdm import tqdm
 from classifiers_.NearestCentroid import NCC
-from classifiers_.Linear import Linear
 from classifiers_.sklLinear import skLinear
 from dataset_.dataset_classes.FastDataLoader import FastDataLoader
 from samplers_.KShotTaskSampler import KShotTaskSampler
@@ -41,10 +41,19 @@ to do:
 """
 
 class FewShotClassification():
-    def __init__(self, dataset, params, model_fc_out, prep_batch, device, variable, hardness):
+    def __init__(self, dataset, params, model_fc_out, device, variable, hardness, additional_fn):
+
+        self.device = device
+        self.params = params
+        self.variable = variable
+        self.additional_fn = additional_fn
 
         self.classifier = self.setup_classifier(params,
             model_fc_out=model_fc_out, 
+            device=device)
+
+        self.batch_fn = self.setup_batching(params=params, 
+            variable=variable,
             device=device)
 
         self.task_loader = self.setup_taskloader(params=params, 
@@ -55,28 +64,19 @@ class FewShotClassification():
             device=device)
 
 
-    def setup_classifier(self, params, model_fc_out, device):
-        # Classifier selection, we use either a linear model or a NCC
-        if params['classifier']['type'] == 'linear':
-            classifier = Linear(input_features=model_fc_out.full_set.shape[-1],
-                adapt_steps=params['classifier']['adapt_steps'],
-                lr=params['classifier']['lr'],
-                n_way=params['task']['n_way'],
-                k_shot=params['task']['k_shot'],
-                q_queries=params['task']['q_queries'],
-                device=device)
 
-        elif params['classifier']['type'] == 'NCC':
-            # Initialises the classifier we are going to use for running our N-way k-shot
-            #   tasks. For this experiment we keep things simple and only look at l2 NCC
-            classifier = NCC(n_way=params['task_setup']['n_way'],
+    def setup_classifier(self, params, model_fc_out, device):
+        # Classifier selection, we use either a linear model or a NCC. 
+
+        if params['classifier']['type'] == 'NCC':
+            # Uses the originally proposed l2 NCC variant
+            classifier = NCC(n_way=params['task']['n_way'],
                 k_shot=params['task']['k_shot'],
                 q_queries=params['task']['q_queries'],
                 device=device)
 
         elif params['classifier']['type'] == 'sklin':
-            # Initialises the classifier we are going to use for running our N-way k-shot
-            #   tasks. For this experiment we keep things simple and only look at l2 NCC
+            # We use an sklearn lin model as it is faster to train generally
             classifier = skLinear(input_features=model_fc_out,
                 adapt_steps=params['classifier']['adapt_steps'],
                 n_way=params['task']['n_way'],
@@ -86,14 +86,35 @@ class FewShotClassification():
         
         return classifier
 
-    def setup_batching(self, variable):
-        pass
+
+    def setup_batching(self, params, variable, device):
+        if variable:
+            prep_batch = prep_var_eval_1d(n_way=params['task']['n_way'],
+                k_shot=params['task']['k_shot'],
+                q_queries=params['task']['q_queries'],
+                device=device,
+                trans=False)
+
+        else:
+            prep_batch = prep_batch_fixed(n_way=params['task']['n_way'],
+                k_shot=params['task']['k_shot'],
+                q_queries=params['task']['q_queries'],
+                device=device,
+                trans=False)
+
+        return prep_batch
+
 
 
     def setup_taskloader(self, params, dataset, hardness, classifier, variable, device):
 
         if variable:
             col_fn = variable_collate
+            # For variable sets, much higher chance that we break through memory
+            #   We take some hit in speed by setting batch size =1 in this case
+            #   but it prevents crashes on smaller systems
+            self.params['task']['batch_size'] = 1
+
         else:
             col_fn = None
 
@@ -107,7 +128,7 @@ class FewShotClassification():
                         n_way=params['task']['n_way'],
                         k_shot=params['task']['k_shot'],
                         q_queries=params['task']['q_queries'],
-                        num_tasks=params['task']['eval_tasks']),
+                        num_tasks=params['task']['num_tasks']),
                     num_workers=params['base']['num_workers'],
                     collate_fn=col_fn)
 
@@ -122,20 +143,42 @@ class FewShotClassification():
                         classifier=classifier,
                         device=device, 
                         diff=hardness,
-                        num_tasks=params['task']['eval_tasks']),
+                        num_tasks=params['task']['num_tasks']),
                     num_workers=params['base']['num_workers'],
                     collate_fn=col_fn)
         
         return task_loader
 
 
-    def fixed_length_run(self):
-        pass
+    def eval(self):
+        # Track the testing phase
+        loop = tqdm(total=len(self.task_loader), desc='Task Loop') 
 
-    def var_length_run(self):
-        pass
+        all_accs = []
 
-    def run(self):
+        for batch_index, batch in enumerate(self.task_loader):
+            # Prep batch and move to GPU
+            if self.variable:
+                x_support, x_queries, query_sample_nums, y = self.batch_fn(batch, self.params['task']['batch_size'])
+
+                accs, losses = self.classifier.variable_length(x_support=x_support, 
+                    x_query=x_queries, 
+                    q_num=query_sample_nums, 
+                    y=y)
+
+                all_accs = all_accs + accs
+
+            elif not self.variable:
+                x, y = self.batch_fn(batch, self.params['task']['batch_size'])
+                accs, losses = self.classifier.fixed_length(x, y)
+                all_accs = all_accs + accs
+            
+
+
+            loop.update(1)
+
+        print(np.mean(all_accs))
+
         pass
 
 

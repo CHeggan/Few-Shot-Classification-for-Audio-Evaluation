@@ -31,10 +31,6 @@ class NCC():
                 k=self.k_shot,
                 batch_size=batched_supports.shape[0])
 
-        # distances = -(self.pairwise_distances(x=x_queries,
-        #     y=prototypes,
-        #     matching_fn=self.dist_func))
-
         n_x = batched_queries.shape[1]
         n_y = prototypes.shape[1]
 
@@ -47,12 +43,17 @@ class NCC():
         y_pred = l2_distances.softmax(dim=2)
 
         #
-        log_p_y =(l2_distances).log_softmax(dim=2).squeeze()
-        loss = self.loss_fn(log_p_y, y_queries)
+        log_p_y =(l2_distances).log_softmax(dim=2)#.squeeze()
+
+
+        loss = self.loss_fn(log_p_y.reshape(log_p_y.shape[0]*log_p_y.shape[1], -1), y_queries.flatten())
+
+        if loss.unsqueeze(0).ndim == 1:
+            loss = loss.unsqueeze(0)
         #
 
         accs = self.batched_catagorical_accuracy(y_queries, y_pred).detach().cpu().numpy()
-        return accs.mean(), loss.mean()
+        return list(accs), list(loss)
 
     def fixed_return_pred_labels(self, x, y):
         batched_supports = x[:, :self.k_shot*self.n_way]
@@ -91,9 +92,9 @@ class NCC():
 
 
 
-    def variable_length(self, x_support, x_query, q_num, y,):
-        acc_total = 0
-        loss_total = 0
+    def variable_length(self, x_support, x_query, q_num, y):
+        accs = []
+        losses = []
 
         # Keep track of the last used q_num access idx
         last_query_idx = 0
@@ -134,12 +135,10 @@ class NCC():
                 x_support.device, dtype=torch.long)
             post_acc = self.vote_catagorical_acc(y_task_val, query_pred)
 
-            loss_total += query_loss.item()
-            acc_total += post_acc.item()
+            losses.append(query_loss.item())
+            accs.append(post_acc.item())
 
-        avg_loss = loss_total/x_support.shape[0]
-        avg_acc = acc_total/x_support.shape[0]
-        return avg_acc, avg_loss
+        return accs, losses
 
     def compute_prototypes(self, support, n, k):
         # Reshape so the first dimension indexes by class then take the mean

@@ -38,17 +38,17 @@ extraction:
 task:
   n_way: 5
   k_shot: 1
-  q_queries: 1
-  num_tasks: 100
-  batch_size: 10
+  q_queries: 20
+  num_tasks: 1000
+  batch_size: 1
   split: val
-  hardness: [easy, avg, hard]
+  hardness: [avg]
 
 #########################
 # CLASSIFIER
 #########################
 classifier:
-  type: linear #linear/NCC
+  type: NCC #linear/NCC/sklin
   adapt_steps: 20
   lr: 0.01
 

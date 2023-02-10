@@ -26,7 +26,7 @@ class FullSetWrapper(Dataset):
         self.labels = labels
 
         # Get an array of the unique numeric labels included in this set
-        self.unique_classes = torch.unique(self.labels)
+        self.unique_classes = torch.unique(self.labels).cpu().numpy()
 
     def __getitem__(self, item):
         return self.full_set[item], self.labels[item]

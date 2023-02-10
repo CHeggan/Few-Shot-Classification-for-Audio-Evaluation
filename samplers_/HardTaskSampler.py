@@ -40,6 +40,7 @@ class HardTaskSampler(Sampler):
 
         self.diff = diff
         self.device = device
+
         self.classifier = classifier
 
         # An idx array that we can use to track masked files/labels etc
@@ -128,21 +129,20 @@ class HardTaskSampler(Sampler):
                 all_queries = np.concatenate(all_queries)
 
                 # Load in actual query set
-                query_set_feats = torch.zeros(size=(len(all_queries), 64))
+                query_set_feats = torch.zeros(size=(len(all_queries), self.dataset.full_set[0].shape[-1]))
                 query_set_labels = []
                 for q_idx, actual_index in enumerate(all_queries):
                     feats, label = self.dataset.__getitem__(actual_index)
-                    query_set_feats[q_idx] = feats
+                    query_set_feats[q_idx] = feats.mean(dim=0)
                     query_set_labels.append(label)
-
 
                 x_quer, y_quer = self.batch_fn( (query_set_feats, query_set_labels), format='query')
 
-                sup_set_feats = torch.zeros(size=(len(all_supports), 64))
+                sup_set_feats = torch.zeros(size=(len(all_supports), self.dataset.full_set[0].shape[-1]))
                 sup_set_labels = []
                 for s_idx, actual_index in enumerate(all_supports):
                     feats, label = self.dataset.__getitem__(actual_index)
-                    sup_set_feats[s_idx] = feats
+                    sup_set_feats[s_idx] = feats.mean(dim=0)
                     sup_set_labels.append(label)
 
                 x_sup, y_sup = self.batch_fn( (sup_set_feats, sup_set_labels), format='support')
@@ -169,8 +169,8 @@ class HardTaskSampler(Sampler):
                 all = np.concatenate((all_supports, all_queries))
                 batch.append(all)
 
-            # Yield pauses the function saving its states and later continues from there
-            yield np.concatenate(batch)
+        # Yield pauses the function saving its states and later continues from there
+        yield np.concatenate(batch)
 
 
     def search_over_k(self, replace_idx, remaining_ks, og_k_sample, s_feats, s_labels, q_feats, q_labels):
@@ -179,14 +179,11 @@ class HardTaskSampler(Sampler):
         full_task = torch.cat([s_feats, q_feats], dim=1)
         all_labels = torch.cat([s_labels, q_labels], dim=1)
 
-        if self.classifier.name == 'linear':
-            single_acc, task_support_loss = self.classifier.fixed_length(full_task, all_labels)
-            single_acc = single_acc[0].item()
-
-        elif self.classifier.name == 'NCC':
-            single_acc = self.classifier.fixed_length(full_task, all_labels)[0].item()
+        accs, losses = self.classifier.fixed_length(full_task, all_labels)
+        single_acc = accs[0]
 
         random.shuffle(remaining_ks)
+
 
         best_new_k_index = og_k_sample
         acc_test = single_acc
@@ -196,12 +193,8 @@ class HardTaskSampler(Sampler):
 
             full_task = torch.cat([s_feats, q_feats], dim=1)
 
-            if self.classifier.name == 'linear':
-                single_acc, task_support_loss = self.classifier.fixed_length(full_task, all_labels)
-                single_acc = single_acc[0].item()
-
-            elif self.classifier.name == 'NCC':
-                single_acc = self.classifier.fixed_length(full_task, all_labels)[0].item()
+            accs, losses = self.classifier.fixed_length(full_task, all_labels)
+            single_acc = accs[0]
 
             if self.diff == 'easy':
                 if np.greater(single_acc, acc_test):
@@ -236,10 +229,10 @@ class HardTaskSampler(Sampler):
             middle_term = self.n_way*self.k_shot
 
         if x.ndim > 2:
-            x = x.reshape(self.batch_size, (middle_term),
+            x = x.reshape(1, (middle_term),
                                 x.shape[-2], x.shape[-1])
         elif x.ndim == 2:
-            x = x.reshape(self.batch_size, (middle_term),
+            x = x.reshape(1, (middle_term),
                      x.shape[-1])
 
         x = x.float().to(self.device)
@@ -250,7 +243,7 @@ class HardTaskSampler(Sampler):
             y = torch.floor( torch.arange(0, self.n_way, 1/self.k_shot) )
 
         # Creates a batch dimension and then repeats across it
-        y = y.unsqueeze(0).repeat(self.batch_size, 1)
+        y = y.unsqueeze(0).repeat(1, 1)
 
         y = y.long().to(self.device)
 

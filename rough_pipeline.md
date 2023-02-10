@@ -7,23 +7,10 @@ Generate a compiled set of features and labels (like in vv)
 
 Use mostly same code from vv after that
 
-```
-For model in model:
-    for dataset in datasets:
-        create dataset with only relevant subsplit of data (minimise overhead)
-        generate data features
-        for task_hardness in [easy, avg, hard]:
-            perform classification on n tasks
-```
 
-- needs to deal with variable input into feature extraction
-
-
-## Args
-Args needed:
-    - dataset(s)
-    - n
-    - k
-    - test tasks
-    - classifier
-    - task hardness
+Still to do:
+ - variable length sklin classifier
+ - obtain metrics for accuracies (std etc)
+ - bundle difficulty results
+ - proper speed testing
+ - output to file

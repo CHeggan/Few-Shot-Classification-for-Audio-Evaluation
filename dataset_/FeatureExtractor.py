@@ -48,7 +48,7 @@ class FeatureExtractor:
             else:
                 x, y = self.prep_batch(batch)
 
-            x = self.additional_fn(x, ft_params=ft_params, device=x.device)
+            x = self.additional_fn(x, ft_params=ft_params)
 
             feats = self.model.forward(x).detach().cpu()
 

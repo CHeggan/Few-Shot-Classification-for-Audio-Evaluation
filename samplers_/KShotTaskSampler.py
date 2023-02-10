@@ -56,6 +56,7 @@ class KShotTaskSampler(Sampler):
         # Generate a full dictionary (class_name, relevant indices) for the dataset
         self.label_dicts = {}
         for class_name in self.dataset.unique_classes:
+
             label_mask = np.isin(self.dataset.labels, class_name)
             samples = self.idx_array[label_mask]
 
@@ -125,33 +126,33 @@ class KShotTaskSampler(Sampler):
         return arr
 
     def __iter__(self):
-            # We iterate over the total number of batches first. This is because at
-            #   the end of any given batch generation we yield it to the sampler. When
-            #   total batches run out it will restart much like a dataloader setup
-            for _ in range(self.num_batches):
+        # We iterate over the total number of batches first. This is because at
+        #   the end of any given batch generation we yield it to the sampler. When
+        #   total batches run out it will restart much like a dataloader setup
+        for _ in range(self.num_batches):
 
-                # Instead of iterating over actual tasks in a batch, we do batch tensors
-                # Generate all batches of classes 
-                class_selections = self.random_choice_noreplace2(
-                    self.dataset.unique_classes, self.n_way, self.batch_size)
+            # Instead of iterating over actual tasks in a batch, we do batch tensors
+            # Generate all batches of classes 
+            class_selections = self.random_choice_noreplace2(
+                self.dataset.unique_classes, self.n_way, self.batch_size)
 
-                class_selections = np.reshape(class_selections, (self.batch_size*self.n_way, -1))
-                class_selections = class_selections.squeeze()
+            class_selections = np.reshape(class_selections, (self.batch_size*self.n_way, -1))
+            class_selections = class_selections.squeeze()
+            
+            sample_arr = [self.shuffle(self.label_dicts[x])[:self.k_shot + self.q_queries] for x in class_selections]
+            sample_arr = np.array(sample_arr)
+            sample_arr = np.reshape(sample_arr, (self.batch_size, self.n_way, -1))
 
-                sample_arr = [self.shuffle(self.label_dicts[x])[:self.k_shot + self.q_queries] for x in class_selections]
-                sample_arr = np.array(sample_arr)
-                sample_arr = np.reshape(sample_arr, (self.batch_size, self.n_way, -1))
+            support_arr = sample_arr[:, :, :self.k_shot]
+            query_arr = sample_arr[:, :, self.k_shot:(self.k_shot) + self.q_queries]
+            support_arr = np.reshape(support_arr, (self.batch_size, -1))
+            query_arr = np.reshape(query_arr, (self.batch_size, -1))
 
-                support_arr = sample_arr[:, :, :self.k_shot]
-                query_arr = sample_arr[:, :, self.k_shot:(self.k_shot) + self.q_queries]
-                support_arr = np.reshape(support_arr, (self.batch_size, -1))
-                query_arr = np.reshape(query_arr, (self.batch_size, -1))
+            sample_arr = np.concatenate((support_arr, query_arr), axis=1)
 
-                sample_arr = np.concatenate((support_arr, query_arr), axis=1)
+            flat = sample_arr.flatten()
 
-                flat = sample_arr.flatten()
-
-                yield flat
+            yield flat
 
 
     def random_choice_noreplace2(self, l, n_sample, num_draw):

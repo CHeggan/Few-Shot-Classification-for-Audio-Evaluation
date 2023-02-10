@@ -112,11 +112,12 @@ class ContrastiveTransformations(object):
         # Had to add ['samples'] as newest version(not released) of torch-aug uses dicts
         return [self.base_transforms(x)['samples'] for i in range(self.n_views)]
 
+
 ################################################################################
 # BATCH OF SIGNAL OT MEL-SPEC
 ################################################################################
-def batch_to_log_mel_spec(samples, ft_params, device):
-    transform = torchaudio.transforms.MelSpectrogram(**ft_params).to(device)
+def batch_to_log_mel_spec(samples, ft_params):
+    transform = torchaudio.transforms.MelSpectrogram(**ft_params).to(samples.device)
     mel_specs = transform(samples)
     log_mel_specs = 20.0 / ft_params['power'] * torch.log10(mel_specs + sys.float_info.epsilon)
     #log_mel_specs = log_mel_specs.squeeze()
@@ -135,24 +136,27 @@ def batch_get_mag_phase(stft_data):
     return stft_data
 
 
-def batch_to_log_mel_spec_plus_stft(samples, ft_params, device):
-    mel_specs = batch_to_log_mel_spec(samples, ft_params, device)
+def batch_to_log_mel_spec_plus_stft(samples, ft_params):
+    # Do we have to change back dims at end of code, yay or nay
+    # If we start with 4 dim input then yay
+    og_shape = samples.shape
+    need_to_change = False
+    if samples.ndim == 4:
+        need_to_change = True
+        samples = samples.reshape(samples.shape[0]*samples.shape[1], samples.shape[-2], samples.shape[-1])
 
+    mel_specs = batch_to_log_mel_spec(samples, ft_params)
     mel_specs = mel_specs.squeeze()
-    if mel_specs.ndim == 2:
-        samples = samples.squeeze()
-        samples = samples.unsqueeze(0)
-        mel_specs = mel_specs.unsqueeze(0)
-    else:
-        # Need to remove channel dimension
-        samples = samples.squeeze()
+
+    # Need to remove channel dimension
+    samples = samples.squeeze()
 
     stft_data = torch.stft(samples, n_fft=ft_params['n_fft'],
         hop_length=ft_params['hop_length'], return_complex=False)
 
     # Transform to project stft bins to mel scale (n bins)
     transform = torchaudio.transforms.MelScale(n_mels=ft_params['n_mels'], 
-        sample_rate=ft_params['sample_rate'], n_stft=stft_data.shape[1]).to(device)
+        sample_rate=ft_params['sample_rate'], n_stft=stft_data.shape[1]).to(samples.device)
 
     trans_real = transform(stft_data[..., 0])
     trans_img = transform(stft_data[..., 1])
@@ -169,6 +173,11 @@ def batch_to_log_mel_spec_plus_stft(samples, ft_params, device):
 
     # Finally stacks the 3 channels of input data together along new channel di
     final_samples = torch.stack((mel_specs, log_mel_scale_stft_amplitude, phase), dim=1)
+
+    if need_to_change:
+        final_samples = final_samples.reshape(og_shape[0], og_shape[1], final_samples.shape[-3],
+            final_samples.shape[-2], final_samples.shape[-1])
+
     return final_samples
 
 

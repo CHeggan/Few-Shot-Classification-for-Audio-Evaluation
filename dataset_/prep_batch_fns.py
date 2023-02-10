@@ -2,6 +2,7 @@
 # IMPORTS
 ###############################################################################
 import torch
+import numpy as np
 
 ###############################################################################
 # PREP BATCH FUNCTION GENERATOR
@@ -121,7 +122,7 @@ def prep_batch_fixed(n_way, k_shot, q_queries, device, trans):
             x = torch.transpose(x, 2, 3)
             x = x.float().to(device)
         else:
-            x = x.unsqueeze(2).float().to(device)
+            x = x.float().to(device)
 
         y_tr = torch.arange(0, n_way, 1/k_shot)
         y_val = torch.arange(0, n_way, 1/q_queries)
@@ -207,8 +208,8 @@ def prep_var_eval_1d(n_way, k_shot, q_queries, device, trans):
             x_support = x_support.float().to(device)
             x_queries = x_queries.float().to(device)
         else:
-            x_support = x_support.unsqueeze(2).float().to(device)
-            x_queries = x_queries.unsqueeze(1).float().to(device)
+            x_support = x_support.float().to(device)
+            x_queries = x_queries.float().to(device)
 
         return x_support, x_queries, query_sample_nums, y
     return prep_var_eval

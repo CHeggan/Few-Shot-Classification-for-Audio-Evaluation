@@ -41,8 +41,8 @@ class skLinear():
         x = x.cpu().numpy()
         y = y.cpu().numpy()
 
-        total_acc = 0
-        total_loss = 0
+        accs = []
+        losses = []
 
         for batch_idx in range(x.shape[0]):
             x_batch = x[batch_idx]
@@ -65,13 +65,10 @@ class skLinear():
             query_pred = clf.predict(queries)
             task_acc = accuracy_score(y_queries,  query_pred)
 
-            total_acc += task_acc
-            total_loss += query_loss
+            accs.append(task_acc)
+            losses.append(query_loss)
 
-        avg_acc = task_acc/x.shape[0]
-        query_loss = total_loss/x.shape[0]
-
-        return [avg_acc], query_loss
+        return accs, losses
 
     
     def return_pred_labels(self, x, y):
