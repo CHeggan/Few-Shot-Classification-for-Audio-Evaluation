@@ -1,0 +1,91 @@
+################################################################################
+# FEW-SHOT AUDIO EVAL CONFIGURATION FILE 
+################################################################################
+
+#########################
+# BASE SETTINGS
+#########################
+base:
+  seed: 42
+  num_workers: 0
+  cuda: True
+
+  path_to_configs: 'dataset_/configs_'
+  results_path: 'RESULT FILES/testing_1.csv'
+
+
+#########################
+# MODEL/ENCODER
+#########################
+model:
+  model_dir: TRAINED
+  name: 'resnet18'
+
+  # Params for a model type of interest
+  resnet18:
+    encoder_fc_dim: 1000
+
+#########################
+# FEATURE EXTRACTION
+#########################
+extraction:
+  batch_size: 50 # Has to say at 1 (allows for variable sets to be processed correctly)
+  num_workers: 0
+
+#########################
+# FEW-SHOT TASKS
+#########################
+task:
+  n_way: 5
+  k_shot: 1
+  q_queries: 1
+  num_tasks: 100
+  batch_size: 10
+  split: val
+  hardness: [easy, avg, hard]
+
+#########################
+# CLASSIFIER
+#########################
+classifier:
+  type: linear #linear/NCC
+  adapt_steps: 20
+  lr: 0.01
+
+
+#########################
+# DATA
+#########################
+data:
+  source_dataset: AS_BAL
+  stats_files: dataset_/stats_/AS_BAL_train_stats.npy
+  ext: '.npy'
+
+  in_dims: 2
+  in_channels: 3
+
+data_paths:
+  ESC: 'X:/Datasets/ESC-50-master/Sorted_npy'
+  Kaggle18_5s: X:/Datasets/Kaggle AudioSet/Raw_5_second_npy
+  NSYNTH: 'X:/Datasets/NSynth/nsynth_npy_no_norm'
+  VoxCeleb_5s: 'X:/Datasets/VoxCeleb1/voxceleb_5s_raw'
+  BirdClef_5s: 'X:/Datasets/Rw Datasets/BirdClef_npy_pruned_5s_raw'
+
+  Watkins_5s: 'X:/Datasets/Wakins/watkins_5s_raw_npy'
+  SCV2_1s: 'X:/Datasets/Speech Commands/V2/SCV2_1s_raw_npy'
+
+  SAA_5s:
+  CV_5s:
+  CremaD_5s: 
+
+
+
+
+# Fourier transform params
+ft_params: 
+  sample_rate: 16000
+  n_mels: 128
+  n_fft: 1024
+  hop_length: 512
+  power: 2
+

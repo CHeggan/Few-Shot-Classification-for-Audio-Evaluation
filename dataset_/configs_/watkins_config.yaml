@@ -1,0 +1,12 @@
+
+target_data:
+  # We want to use the stats from training
+  variable: True
+  name: 'Watkins_5s' #Kaggle_18/BirdClef_pruned_5s
+  norm: 'per_sample'
+  type: 'variable_raw' # variable_spec/spec
+  fixed: False
+
+  all_test: True
+
+  fixed_path: 'dataset_/splits_/watkins_split.npy'

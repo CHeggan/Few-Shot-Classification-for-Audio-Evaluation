@@ -1,0 +1,12 @@
+
+target_data:
+  # We want to use the stats from training
+  variable: True
+  name: 'VoxCeleb_5s'
+  norm: 'global'
+  type: 'variable_raw' # variable_spec/spec/raw
+  fixed: True
+  
+  all_test: False
+
+  fixed_path: 'dataset_/splits_/voxceleb_split.npy'
