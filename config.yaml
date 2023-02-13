@@ -18,18 +18,18 @@ base:
 # MODEL/ENCODER
 #########################
 model:
-  model_dir: TRAINED
+  model_dir: TRAINED/simclr_p
   name: 'resnet18'
 
   # Params for a model type of interest
   resnet18:
-    encoder_fc_dim: 1000
+    encoder_fc_dim: 64
 
 #########################
 # FEATURE EXTRACTION
 #########################
 extraction:
-  batch_size: 50 # Has to say at 1 (allows for variable sets to be processed correctly)
+  batch_size: 1 # Has to stay at 1 (allows for variable sets to be processed correctly)
   num_workers: 0
 
 #########################
@@ -38,10 +38,10 @@ extraction:
 task:
   n_way: 5
   k_shot: 1
-  q_queries: 20
+  q_queries: 1
   num_tasks: 1000
   batch_size: 1
-  split: val
+  split: test
   hardness: [avg]
 
 #########################
@@ -74,9 +74,9 @@ data_paths:
   Watkins_5s: 'X:/Datasets/Wakins/watkins_5s_raw_npy'
   SCV2_1s: 'X:/Datasets/Speech Commands/V2/SCV2_1s_raw_npy'
 
-  SAA_5s:
+  SAA_5s: X:/Datasets/Speech Accent Archive/sorted_recordings_5s_raw
   CV_5s:
-  CremaD_5s: 
+  CremaD_5s: X:/Datasets/CremaD/sorted_5s_raw
 
 
 

@@ -4,7 +4,6 @@ target_data:
   name: 'NSYNTH' #Kaggle_18
   norm: 'global'
   type: 'raw' # variable_spec/spec/raw
-  fixed: True
   
   all_test: False
   

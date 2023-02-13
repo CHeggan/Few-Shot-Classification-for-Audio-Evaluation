@@ -41,6 +41,7 @@ class FeatureExtractor:
         all_feats = []
         all_labels = []
 
+    
         for idx, batch in enumerate(self.dataloader):
 
             if self.variable:
@@ -48,6 +49,9 @@ class FeatureExtractor:
             else:
                 x, y = self.prep_batch(batch)
 
+            # if x.shape[0] == 1:
+            #     x = torch.concat((x, x))
+            #     print(x.shape)
             x = self.additional_fn(x, ft_params=ft_params)
 
             feats = self.model.forward(x).detach().cpu()

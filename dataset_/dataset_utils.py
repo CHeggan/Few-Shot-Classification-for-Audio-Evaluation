@@ -140,6 +140,13 @@ def batch_to_log_mel_spec_plus_stft(samples, ft_params):
     # Do we have to change back dims at end of code, yay or nay
     # If we start with 4 dim input then yay
     og_shape = samples.shape
+    
+    # If we are dealing with a singular sample, have to make sure squeezing dims doesn't cause issues
+    if og_shape[0] ==1:
+        singular = True
+    else:
+        singular = False
+
     need_to_change = False
     if samples.ndim == 4:
         need_to_change = True
@@ -150,6 +157,11 @@ def batch_to_log_mel_spec_plus_stft(samples, ft_params):
 
     # Need to remove channel dimension
     samples = samples.squeeze()
+
+    if singular:
+        mel_specs = mel_specs.unsqueeze(0)
+        samples = samples.unsqueeze(0)
+
 
     stft_data = torch.stft(samples, n_fft=ft_params['n_fft'],
         hop_length=ft_params['hop_length'], return_complex=False)

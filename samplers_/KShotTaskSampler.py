@@ -61,6 +61,7 @@ class KShotTaskSampler(Sampler):
             samples = self.idx_array[label_mask]
 
             if len(samples) < (self.k_shot + self.q_queries):
+                print(class_name, len(samples), self.k_shot + self.q_queries)
                 print(f'Issue with num samples in class: {class_name}. Removing from class selection')
                 self.dataset.unique_classes = np.delete(self.dataset.unique_classes, np.where(self.dataset.unique_classes == class_name))
 

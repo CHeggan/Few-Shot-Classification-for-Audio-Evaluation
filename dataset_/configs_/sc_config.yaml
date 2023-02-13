@@ -5,7 +5,7 @@ target_data:
   name: 'SCV2_1s' #Kaggle_18/BirdClef_pruned_5s
   norm: 'global'
   type: 'variable_raw' # variable_spec/spec
-  fixed: 'dataset_/splits_/sc_split.npy'
+  fixed_path: 'dataset_/splits_/sc_split.npy'
 
   all_test: True
 

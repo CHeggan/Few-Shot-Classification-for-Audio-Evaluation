@@ -100,7 +100,6 @@ def single_dataset_run(params, data_params, model_file_path, device):
 
     features, labels = feat_generator.generate(params['ft_params'], verbose=True)
 
-    print(len(features), labels.shape)
 
     #########################
     # FEW-SHOT PROBLEM
@@ -123,3 +122,5 @@ def single_dataset_run(params, data_params, model_file_path, device):
             )
 
         accs = fs_class.eval()
+
+        print(data_params['target_data']['name'], np.mean(accs))

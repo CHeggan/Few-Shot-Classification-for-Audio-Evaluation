@@ -75,7 +75,7 @@ if __name__ == '__main__':
     #########################
     # LOOP OVER MODELS
     #########################
-    model_files = glob.glob(params['model']['model_dir'] + '/' +"*.pt")
+    model_files = glob.glob(params['model']['model_dir'] + '/' +"*.pt")[1:]
     for idx, model_file_path in enumerate(model_files):
         trained_model_name = model_file_path.split('.')[0].split('/')[-1]
 
@@ -104,17 +104,20 @@ if __name__ == '__main__':
                     continue
 
             print(config_file)
+            # if config_file != 'kaggle_config.yaml':
+            #     continue
 
-            if ('esc' not in config_file) and ('kaggle' not in config_file):
-                continue
+            # if ('esc' not in config_file) and ('kaggle' not in config_file):
+            #     continue
 
             if data_params['target_data']['variable'] == False:
                 params['extraction']['batch_size'] = params['extraction']['batch_size']*2
 
-            result_dict = single_dataset_run(params=params, 
-                data_params=data_params,
-                model_file_path=model_file_path,
-                device=device)
+            with torch.no_grad():
+                result_dict = single_dataset_run(params=params, 
+                    data_params=data_params,
+                    model_file_path=model_file_path,
+                    device=device)
 
             if params['base']['cuda']:
                 torch.cuda.empty_cache()

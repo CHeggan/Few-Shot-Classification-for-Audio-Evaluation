@@ -5,7 +5,6 @@ target_data:
   name: 'Watkins_5s' #Kaggle_18/BirdClef_pruned_5s
   norm: 'per_sample'
   type: 'variable_raw' # variable_spec/spec
-  fixed: False
 
   all_test: True
 

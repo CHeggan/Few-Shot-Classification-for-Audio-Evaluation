@@ -5,7 +5,6 @@ target_data:
   name: 'BirdClef_5s'
   norm: 'global'
   type: 'variable_raw' # variable_spec/spec/raw
-  fixed: True
   
   all_test: False
 

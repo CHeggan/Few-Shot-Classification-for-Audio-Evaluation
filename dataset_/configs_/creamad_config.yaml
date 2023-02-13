@@ -1,0 +1,13 @@
+
+target_data:
+  # We want to use the stats from training
+  variable: True
+  name: 'CremaD_5s' 
+  norm: 'global'
+  type: 'variable_raw' # variable_spec/spec
+  fixed_path: 'dataset_/splits_/cremad_split.npy'
+
+  all_test: True
+
+
+

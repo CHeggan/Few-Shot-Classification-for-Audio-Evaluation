@@ -177,8 +177,10 @@ class FewShotClassification():
 
             loop.update(1)
 
+        print('\n')
         print(np.mean(all_accs))
-
+        print('\n')
+        return all_accs
         pass
 
 
