@@ -107,10 +107,8 @@ def single_dataset_run(params, data_params, model_file_path, device):
     fs_dataset = FullSetWrapper(full_set=features, labels=labels.cpu())
 
 
-
+    results = []
     for hardness in params['task']['hardness']:
-
-        print(hardness)
 
         fs_class = FewShotClassification(dataset=fs_dataset,
             params=params,
@@ -124,3 +122,23 @@ def single_dataset_run(params, data_params, model_file_path, device):
         accs = fs_class.eval()
 
         print(data_params['target_data']['name'], np.mean(accs))
+
+        mean = np.mean(accs)
+        std = np.std(accs)
+        ci_95 = (1.96 / np.sqrt(int(params['task']['num_tasks']))) * std *100
+
+
+        result_dict = {'model_name': model_file_path.split('.')[0].split('/')[-1],
+            'dataset': data_params['target_data']['name'], 
+            'hardness': hardness,
+            'mean': mean,
+            'std': std,
+            'CI_95': ci_95,
+            'k':params['task']['k_shot'],
+            'n':params['task']['n_way'],
+            'q':params['task']['q_queries']}
+
+        results.append(result_dict)
+
+        print(data_params['target_data']['name'], mean)
+    return results

@@ -18,12 +18,12 @@ base:
 # MODEL/ENCODER
 #########################
 model:
-  model_dir: TRAINED/simclr_p
+  model_dir: TRAINED/
   name: 'resnet18'
 
   # Params for a model type of interest
   resnet18:
-    encoder_fc_dim: 64
+    encoder_fc_dim: 512
 
 #########################
 # FEATURE EXTRACTION
