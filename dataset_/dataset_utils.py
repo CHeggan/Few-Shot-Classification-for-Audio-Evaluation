@@ -151,6 +151,7 @@ def batch_to_log_mel_spec_plus_stft(samples, ft_params):
     if samples.ndim == 4:
         need_to_change = True
         samples = samples.reshape(samples.shape[0]*samples.shape[1], samples.shape[-2], samples.shape[-1])
+        singular = False
 
     mel_specs = batch_to_log_mel_spec(samples, ft_params)
     mel_specs = mel_specs.squeeze()

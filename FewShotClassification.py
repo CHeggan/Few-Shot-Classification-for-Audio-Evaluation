@@ -4,6 +4,8 @@ An largely enclosed few-shot classification class with accompanying methods. Set
     over for avg classification results. Also deals with the majority of setup 
     around classifiers, and task samplers
 """
+import sys
+import torch
 import numpy as np
 from tqdm import tqdm
 from classifiers_.NearestCentroid import NCC
@@ -150,7 +152,7 @@ class FewShotClassification():
         return task_loader
 
 
-    def eval(self):
+    def eval_w_feats(self):
         # Track the testing phase
         loop = tqdm(total=len(self.task_loader), desc='Task Loop') 
 
@@ -170,6 +172,71 @@ class FewShotClassification():
 
             elif not self.variable:
                 x, y = self.batch_fn(batch, self.params['task']['batch_size'])
+                accs, losses = self.classifier.fixed_length(x, y)
+                all_accs = all_accs + accs
+            
+
+
+            loop.update(1)
+
+        return all_accs
+
+    def eval_w_samples(self, model, additional_batch_fn, extra_model_params={}):
+        # Track the testing phase
+        loop = tqdm(total=len(self.task_loader), desc='Task Loop') 
+
+        all_accs = []
+
+        for batch_index, batch in enumerate(self.task_loader):
+            # Prep batch and move to GPU
+            if self.variable:
+                x_support, x_queries, query_sample_nums, y = self.batch_fn(batch, self.params['task']['batch_size'])
+
+                x_support = x_support.unsqueeze(2)
+                x_queries = x_queries.unsqueeze(1)
+
+                all_x_support = []
+
+                og_support_shape = x_support.shape
+                x_support = x_support.reshape(x_support.shape[0]*x_support.shape[1], x_support.shape[-2], x_support.shape[-1])
+
+                # for idm, _ in enumerate(x_support):
+                #     mini_support = x_support[idm]
+
+                #     mini_support = additional_batch_fn(mini_support, ft_params=self.params['ft_params'])
+                #     mini_support = model.forward(mini_support, **extra_model_params)
+
+                #     all_x_support.append(mini_support)
+
+                # x_support = torch.stack(all_x_support)
+
+                x_support = additional_batch_fn(x_support, ft_params=self.params['ft_params'])
+                x_support = model.forward(x_support, **extra_model_params)
+
+                x_support = x_support.reshape(og_support_shape[0], og_support_shape[1], -1)
+
+                x_queries = additional_batch_fn(x_queries, ft_params=self.params['ft_params'])
+                x_queries = model.forward(x_queries, **extra_model_params)
+
+                accs, losses = self.classifier.variable_length(x_support=x_support, 
+                    x_query=x_queries, 
+                    q_num=query_sample_nums, 
+                    y=y)
+
+                all_accs = all_accs + accs
+
+            elif not self.variable:
+                x, y = self.batch_fn(batch, self.params['task']['batch_size'])
+                x = x.unsqueeze(2)
+
+                og_x_shape = x.shape
+                x = x.reshape(og_x_shape[0]*og_x_shape[1], og_x_shape[-2], og_x_shape[-1])
+                x = additional_batch_fn(x, ft_params=self.params['ft_params'])
+
+                x = model.forward(x, **extra_model_params)
+
+                x = x.reshape(og_x_shape[0], og_x_shape[1], -1)
+
                 accs, losses = self.classifier.fixed_length(x, y)
                 all_accs = all_accs + accs
             

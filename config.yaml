@@ -18,12 +18,22 @@ base:
 # MODEL/ENCODER
 #########################
 model:
-  model_dir: TRAINED/
-  name: 'resnet18'
+  model_dir: TRAINED/mtl_bn/
+  name: 'adapter_resnet18'
 
   # Params for a model type of interest
   resnet18:
-    encoder_fc_dim: 512
+    encoder_fc_dim: 1000
+
+  adapter_resnet18:
+    head_dim: 500
+    num_heads: 2
+    task_mode: 'bn'
+
+  split_resnet18:
+    num_heads: 2
+    head_dim: 500
+
 
 #########################
 # FEATURE EXTRACTION
@@ -39,7 +49,7 @@ task:
   n_way: 5
   k_shot: 1
   q_queries: 1
-  num_tasks: 1000
+  num_tasks: 10000
   batch_size: 1
   split: test
   hardness: [avg]
@@ -48,7 +58,7 @@ task:
 # CLASSIFIER
 #########################
 classifier:
-  type: NCC #linear/NCC/sklin
+  type: sklin #linear/NCC/sklin
   adapt_steps: 20
   lr: 0.01
 
@@ -75,10 +85,23 @@ data_paths:
   SCV2_1s: 'X:/Datasets/Speech Commands/V2/SCV2_1s_raw_npy'
 
   SAA_5s: X:/Datasets/Speech Accent Archive/sorted_recordings_5s_raw
-  CV_5s:
+  CommonVoice_5s: X:/Datasets/Common_Voice/reduced_raw_5s
   CremaD_5s: X:/Datasets/CremaD/sorted_5s_raw
 
+# Whether to precompute feats or not
+use_feats:
+  ESC: True
+  Kaggle18_5s: True
+  NSYNTH: False
+  VoxCeleb_5s: True
+  BirdClef_5s: True
 
+  Watkins_5s: True
+  SCV2_1s: False
+
+  SAA_5s: True
+  CommonVoice_5s: False
+  CremaD_5s: True
 
 
 # Fourier transform params

@@ -35,6 +35,9 @@ class PathFinderSet(Dataset):
         #print(np.array(self.labels))
         self.str_unique_classes = np.unique(np.array(self.str_labels, dtype='U256'))
 
+        self.labels = self.int_labels
+        self.unique_classes = torch.unique(self.labels).cpu().numpy()
+
 
     def __getitem__(self, item):
         sample_path = self.file_paths[item]

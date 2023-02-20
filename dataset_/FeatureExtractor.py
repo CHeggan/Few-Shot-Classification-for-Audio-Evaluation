@@ -33,7 +33,7 @@ class FeatureExtractor:
 
         self.variable = variable
 
-    def generate(self, ft_params, verbose):
+    def generate(self, ft_params, verbose, extra_params={}):
 
         if verbose:
             loop = tqdm(total=len(self.dataloader), desc='Feat Gen')
@@ -54,7 +54,7 @@ class FeatureExtractor:
             #     print(x.shape)
             x = self.additional_fn(x, ft_params=ft_params)
 
-            feats = self.model.forward(x).detach().cpu()
+            feats = self.model.forward(x, **extra_params).detach().cpu()
 
             if self.variable:
                 feat_list = list(torch.split(feats, lengths))

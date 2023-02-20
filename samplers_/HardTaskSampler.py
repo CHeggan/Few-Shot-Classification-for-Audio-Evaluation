@@ -89,7 +89,6 @@ class HardTaskSampler(Sampler):
             batch = []
 
             for task_idx in range(self.batch_size):
-
                 task_classes = np.random.choice(self.dataset.unique_classes,
                     size=self.n_way,
                     replace=False)
@@ -129,19 +128,26 @@ class HardTaskSampler(Sampler):
                 all_queries = np.concatenate(all_queries)
 
                 # Load in actual query set
-                query_set_feats = torch.zeros(size=(len(all_queries), self.dataset.full_set[0].shape[-1]))
                 query_set_labels = []
                 for q_idx, actual_index in enumerate(all_queries):
                     feats, label = self.dataset.__getitem__(actual_index)
+
+                    if q_idx == 0:
+                        query_set_feats = torch.zeros(size=(len(all_queries), feats.shape[-1]))
+
                     query_set_feats[q_idx] = feats.mean(dim=0)
                     query_set_labels.append(label)
 
                 x_quer, y_quer = self.batch_fn( (query_set_feats, query_set_labels), format='query')
 
-                sup_set_feats = torch.zeros(size=(len(all_supports), self.dataset.full_set[0].shape[-1]))
+                
                 sup_set_labels = []
                 for s_idx, actual_index in enumerate(all_supports):
                     feats, label = self.dataset.__getitem__(actual_index)
+
+                    if s_idx == 0:
+                        sup_set_feats = torch.zeros(size=(len(all_supports), feats.shape[-1]))
+                    
                     sup_set_feats[s_idx] = feats.mean(dim=0)
                     sup_set_labels.append(label)
 
@@ -169,8 +175,8 @@ class HardTaskSampler(Sampler):
                 all = np.concatenate((all_supports, all_queries))
                 batch.append(all)
 
-        # Yield pauses the function saving its states and later continues from there
-        yield np.concatenate(batch)
+            # Yield pauses the function saving its states and later continues from there
+            yield np.concatenate(batch)
 
 
     def search_over_k(self, replace_idx, remaining_ks, og_k_sample, s_feats, s_labels, q_feats, q_labels):
@@ -189,6 +195,8 @@ class HardTaskSampler(Sampler):
         acc_test = single_acc
         for idz, new_k_index in enumerate(remaining_ks):
             new_sample, label = self.dataset.__getitem__(new_k_index)
+            new_sample = new_sample.mean(dim=0)
+
             s_feats[:, replace_idx] = new_sample
 
             full_task = torch.cat([s_feats, q_feats], dim=1)
@@ -207,6 +215,7 @@ class HardTaskSampler(Sampler):
                     best_new_k_index = new_k_index
 
         new_sample, label = self.dataset.__getitem__(best_new_k_index)
+        new_sample =new_sample.mean(dim=0)
         s_feats[:, replace_idx] = new_sample
 
         # Add back in the og sample index

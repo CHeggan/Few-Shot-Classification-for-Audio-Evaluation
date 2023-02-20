@@ -109,7 +109,14 @@ if __name__ == '__main__':
             # if config_file != 'kaggle_config.yaml':
             #     continue
 
-            # if ('esc' not in config_file) and ('kaggle' not in config_file):
+            # # Fast ones for quick eval testing
+            # if ('esc' not in config_file) and ('kaggle' not in config_file) and ('cremad' not in config_file) and ('saa' not in config_file):
+            #     continue
+
+            # if 'esc' not in config_file:
+            #     continue
+
+            # if 'common' not in config_file:
             #     continue
 
             # If we are extracting fix length data, we are less likely to exceed memory
@@ -124,15 +131,17 @@ if __name__ == '__main__':
                     model_file_path=model_file_path,
                     device=device)
 
+                all_results = all_results + results
+
             if params['base']['cuda']:
                 torch.cuda.empty_cache()
                 gc.collect()
 
 
+        model_df = pd.DataFrame(all_results)
+        print(model_df)
 
-        #update_df = pd.DataFrame(results)
-
-        #print(result_dict)
+        
 
             
 
