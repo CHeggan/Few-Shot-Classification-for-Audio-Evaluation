@@ -99,7 +99,9 @@ We include support for 10 total datasets for evaluation. Many of these are from 
  - SpeechCommands v2 (Test Only)
  - Watkins Marine Mammal Database (Test Only)
 
-These datasets are supported in that they have included train/val/test splits and statistics information included within the codebase. The actual datasets will have to be manually downloaded and setup prior to running this framework. We do not yet include a comprehensive guide here on how to do this but we refer you to our previous notes in the MetaAudio repo on hot to do this [here](https://github.com/CHeggan/MetaAudio-A-Few-Shot-Audio-Classification-Benchmark/tree/main/Dataset%20Processing)
+These datasets are supported in that they have included train/val/test splits and statistics information included within the codebase. The actual datasets will have to be manually downloaded and setup prior to running this framework. We do not yet include a comprehensive guide here on how to do this but we refer you to our previous notes in the MetaAudio repo on how to do this [here](https://github.com/CHeggan/MetaAudio-A-Few-Shot-Audio-Classification-Benchmark/tree/main/Dataset%20Processing). 
+
+The set of datasets evaluated over will depend on the value of the 'split' argument passed during the script call. If split is set as 'val' only datasets that have a validation split can and will be used. If split is set to 'test', the test split of every possible dataset will be used. This separation allows for some hyper parameter tuning of models on a so-called valuation split, similarly to how it would be done in meta-learning.
 
 
 ## Additional Setup
