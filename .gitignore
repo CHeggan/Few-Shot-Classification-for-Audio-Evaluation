@@ -2,7 +2,6 @@
 \*.pyc
 *.pyc
 *.pyc
-classifiers_/__pycache__/NearestCentroid.cpython-38.pyc
 *.csv
-*.pyc
-*.pyc
+gen_exper.py
+

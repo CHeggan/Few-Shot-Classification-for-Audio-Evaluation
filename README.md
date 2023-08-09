@@ -63,16 +63,24 @@ for _ in range(num_few_shot_tasks):
 ```
 
 
-
 # Using the Repo
 ## Contents & Variables
+The evaluation suite contains a variety of options for more advanced evaluation:
+ - Generalised neural network plugin: 
 
 
 ## Environment
 
 
 ## Datasets & Processing
+validation/test
 
+## Additional Setup
+There are a few blank folders to be added to the main repo folder:
+ - "TRAINED": The folder which will contain the trained models we want to evaluate over
+ - "RESULT FILES": Folder to contain the results of the few-shot eval run
+
+Within "TRAINED", unless using a single model, models will have to be nested within additional folders. Our code utilises a model loop where any model within a given directory will be loaded and evaluated sequentially. This process is great for mass evaluation with similar model types (architecture/adapter/input etc) but can lead to errors if not handled properly.
 
 ## Example Run
 
@@ -82,13 +90,28 @@ for _ in range(num_few_shot_tasks):
 ## Variable Length Handling
 
 ## Input Data Dimensionality
-
+The codebase offers 3 different data input representations for models:
+ - Raw 1d signal (dims=1, channels=1)
+ - 2d 1-channel typical Mel-Spectrogram (dims=2, channels=1)
+ - 2d 3-channel Mel-Spectrogram w/ channels 2 and 3 containing explicit phase and amplitude information (dims=2, channels=3)
 
 ## Main Model Loop
+As the evaluation framework is largely built around the purpose of mass model evaluation, we utilise an inner loop for both available models and considered datasets. Tis comes with a few benefits and a few possible drawbacks. 
 
+Benefits:
+ - Allows many models to be evaluated over many datasets with a single script run
+
+Drawbacks:
+ - Models that are to be evaluated in a single script run must be of similar type, i.e same input type/base model architecture
+ - If running single models, they have to be nested inside a folder
+
+As of now, our code primarily supports resnet based architectures. If you want to use a base neural model that is different you will have to do the following:
+ - Add the model construction scripts to the "Models_" folder
+ - Modify the encoder selection script to include your model
+ - Modify the setup.py script to include loading your model based on some input name
 
 ## Conversion to Features 
-
+Sampling many tasks from datasets and extracting/evaluating them sequentially can be very expensive, i.e 20 minutes for a single set of 10,000 tasks for a single model. To alleviate this issue we implemented a feature extraction pipeline within the evaluation code. Effectively what this section does  
 
 ## Types of Tasks
 hard/easy etc

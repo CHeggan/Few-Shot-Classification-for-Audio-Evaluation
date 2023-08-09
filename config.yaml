@@ -11,25 +11,25 @@ base:
   cuda: True
 
   path_to_configs: 'dataset_/configs_'
-  results_path: #'RESULT FILES/resnet18_none_val_sample_stats.csv'
+  results_path: #'sample_results.csv' #argparse
 
 
 #########################
 # MODEL/ENCODER
 #########################
 model:
-  model_dir: #X:/Trained_model_storage/MT-SLVR Large Work/RN18 Main Models Extracted/none
-  name: #resnet18 #resnet18/ast_tiny etc Prefix are added to the model depending on what adapter is selected
-  dims: #2
-  in_channels: #3
+  model_dir: #X:/Trained_model_storage/MT-SLVR Large Work/RN18 Main Models Extracted/none #argparse
+  name: #resnet18 #resnet18/ast_tiny etc Prefix are added to the model depending on what adapter is selected #argparse
+  dims: #2 #argparse
+  in_channels: #3 #argparse
   input_tdim:  # Only needed for ast models # Now auto compute 
-  encoder_fc_dim: #1000
+  encoder_fc_dim: #1000 #argparse
 
 adapters:
-  #task_mode: None # series_adapters/parallel_adapters/bn/split for resnets
+  #task_mode: None # series_adapters/parallel_adapters/bn/split for resnets #argparse
               # adaptformer_series/adaptformer_parallel/og_adapter for asts
 
-  num_splits: #1 # Number of splits in the fc layer in backbone
+  num_splits: #1 # Number of splits in the fc layer in backbone #argparse
 
 
 #########################
@@ -43,13 +43,13 @@ extraction:
 # FEW-SHOT TASKS
 #########################
 task:
-  n_way: #5
-  k_shot: #1
-  q_queries: #1
-  num_tasks: #10000
-  batch_size: 1
-  split: #val # test/val
-  hardness: [avg]
+  n_way: #5 #argparse
+  k_shot: #1 #argparse
+  q_queries: #1 #argparse
+  num_tasks: #10000 #argparse
+  batch_size: 1 # Batch size best kept to 1 when including any variable length set
+  split: #val # test/val #argparse
+  hardness: [avg] # Task hardnesses to consider
 
 #########################
 # CLASSIFIER
@@ -69,9 +69,12 @@ data:
   stats_file: dataset_/stats_/FSD50k_train_stats.npy
   ext: '.npy'
 
+  # Input dimensionality of data: Has to match what model expects
   in_dims: 2
   in_channels: 3
 
+
+# All absolute paths to datasets of interest
 data_paths:
   ESC: 'X:/Datasets/ESC-50-master/Sorted_npy'
   Kaggle18_5s: X:/Datasets/Kaggle AudioSet/Raw_5_second_npy
@@ -86,7 +89,8 @@ data_paths:
   CommonVoice_5s: X:/Datasets/Common_Voice/reduced_raw_5s
   CremaD_5s: X:/Datasets/CremaD/sorted_5s_raw
 
-# Whether to precompute feats or not
+
+# Whether to precompute features or to use raw data sampling. Speed benefit is highly dependant on dataset size
 use_feats:
   ESC: True
   Kaggle18_5s: True
