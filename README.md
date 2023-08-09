@@ -9,6 +9,15 @@ This is an active codebase in that we will be using and updating it alongside ou
  - 9/8/23: Public release of the codebase 
 
 
+## TODO
+There is still some work to be done for this codebase:
+ - Notes on how to setup and format included datasets
+ - Inclusion of a guide on how to setup custom datasets
+ - Reproducible environment Release
+ - 
+
+
+
 ## Citation
 This codebase was developed for our most recent works [MT-SLVR](https://github.com/CHeggan/MT-SLVR) and [MetaAudio](https://github.com/CHeggan/MetaAudio-A-Few-Shot-Audio-Classification-Benchmark). If you find this repo useful or utilise it in your work, please consider citing our works:
 
@@ -46,7 +55,7 @@ In this framework we evaluate over few-shot classification tasks, each containin
 Example of 3 5-way 1-shot audio tasks, with support sets (left) and query sets (right). 
 
 
-In simplified code: For each pre-trained model and each considered dataset, the evaluation framework does the following:
+In simplified code, for each pre-trained model and each considered dataset, the evaluation framework does the following:
 ```python 
 # Consider some number n of few-shot classification tasks, we use n = 10,000
 for _ in range(num_few_shot_tasks):
@@ -76,11 +85,22 @@ The evaluation suite contains a variety of options for more advanced evaluation 
 
 
 ## Environment
-We are currently working on re-factoring the environment for this codebase
-
+We are currently working on re-factoring the environment for this codebase.
 
 ## Datasets & Processing
-validation/test
+We include support for 10 total datasets for evaluation. Many of these are from the [MetaAudio](https://github.com/CHeggan/MetaAudio-A-Few-Shot-Audio-Classification-Benchmark/tree/main) work, however some were added in [MT-SLVR](https://github.com/CHeggan/MT-SLVR). Datasets currently supported by default are:
+ - NSynth
+ - ESC-50
+ - BirdClef Pruned
+ - VoxCeleb1
+ - FSDKaggle18
+ - Speech Accent Archive (Test Only)
+ - Common Voice Delta Segment v12 (Test Only)
+ - Crema-D (Test Only)
+ - SpeechCommands v2 (Test Only)
+ - Watkins Marine Mammal Database (Test Only)
+
+These datasets are supported in that they have included train/val/test splits and statistics information included within the codebase. The actual datasets will have to be manually downloaded and setup prior to running this framework. We do not yet include a comprehensive guide here on how to do this but we refer you to our previous notes in the MetaAudio repo on hot to do this [here](https://github.com/CHeggan/MetaAudio-A-Few-Shot-Audio-Classification-Benchmark/tree/main/Dataset%20Processing)
 
 
 ## Additional Setup
@@ -93,7 +113,7 @@ Within "TRAINED", unless using a single model, models will have to be nested wit
 ## Example Run
 
 ```bash
-    python .\main.py  --model_name resnet18 --adapter None --num_splits 1 --model_fc_out 1000 --model_dir "X:/Trained_model_storage/MT-SLVR Large Work/RN18 Main Models Extracted/none" --num_tasks 100 --split test --classifier sklin --results_file nan_testing --rep_length 1
+python .\main.py  --model_name resnet18 --adapter None --num_splits 1 --model_fc_out 1000 --model_dir "X:/Trained_model_storage/MT-SLVR" --num_tasks 100 --split test --classifier "sklin" --results_file "nan_testing" --rep_length 1
 ```
 
 
