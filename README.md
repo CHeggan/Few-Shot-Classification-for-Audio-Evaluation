@@ -36,12 +36,14 @@ publisher="Springer International Publishing",
 pages="219--230",
 isbn="978-3-031-15919-0"
 }
-
 ```
 
 
 # Few-Shot Evaluation
 In this framework we evaluate over few-shot classification tasks, each containing a support set and a query set. These are best though about as mini learning problems in the regime where you have limited labelled data. The support set is effectively a mini-training set, which we use to train a classifier, and the query set acts as analogously to a tests set. 
+
+![Alt text](repo_images/Few_shot_audio_classification.svg)
+<img src="repo_images/Few_shot_audio_classification.svg">
 
 In simplified code: For each pre-trained model and each considered dataset, the evaluation framework does the following:
 ```python 
@@ -75,6 +77,7 @@ The evaluation suite contains a variety of options for more advanced evaluation:
 ## Datasets & Processing
 validation/test
 
+
 ## Additional Setup
 There are a few blank folders to be added to the main repo folder:
  - "TRAINED": The folder which will contain the trained models we want to evaluate over
@@ -88,6 +91,14 @@ Within "TRAINED", unless using a single model, models will have to be nested wit
 
 # Functionality
 ## Variable Length Handling
+Our evaluation datasets range from fixed length (where all samples are exactly the same size) to massively variable length (where samples range from 0.1 seconds to multiple minutes). 
+
+To handle this we build the framework around the idea of variable representation length, where effectively given an input sample, we can choose how long it should be as input to the model. We implement this idea using the following constraints:
+ - Any sample from any dataset can have its input length modified
+ - If a sample is to be extended, it is circularly padded
+ - If a sample is longer than what we want, we split it up into sections that are wanted length and randomly sample from them
+
+All representation length changes are done before conversion to spectrograms if applicable.
 
 ## Input Data Dimensionality
 The codebase offers 3 different data input representations for models:
