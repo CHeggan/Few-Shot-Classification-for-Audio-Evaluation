@@ -9,6 +9,7 @@ Includes the main experiment call as well as:
 import gc
 import os
 import sys
+import math
 import time
 import glob
 
@@ -27,6 +28,70 @@ from single_set import single_dataset_run
 if __name__ == '__main__':
 
     #########################
+    # ARGPARSE
+    #########################
+    parser = argparse.ArgumentParser(description='Few-Shot Audio Evaluation Codebase')
+
+    # Model Controls
+    parser.add_argument('--model_name', required=True, type=str,
+        help='What model to use. Refer to Models_/encoder_selection.py  to see full options')
+
+    parser.add_argument('--adapter', required=True, type=str,
+        help='Type of adapter to use for MTL approach', choices=['None', 'split', 'bn', 'series', 'parallel', 'og_adapter', 'adaptformer_series', 'adaptformer_parallel'])
+    
+    parser.add_argument('--num_splits', required=True, type=int,
+            help='Number f splits in final backbone layer. Cannot be <2 with adapter type split')
+
+    parser.add_argument('--model_fc_out', required=True, type=int,
+        help='Size of the final fully-connected head in backbone model, assumes we merge task heads, per head we do total/num heads')
+    
+    parser.add_argument('--model_dir', required=True, type=str,
+        help='Directory of trained models to use for evaluation')
+
+    # Results file name
+    parser.add_argument('--results_file', required=True, type=str,
+        help='Name of results file to create for this set of models')
+
+
+    # Few-Shot Task Setup
+    parser.add_argument('--num_tasks', required=True, type=int,
+        help='Number of few-shot tasks to generate and solve')
+
+    parser.add_argument('--split', required=True, type=str, 
+        help='Split of datasets to use for evaluation', choices=['val', 'test'])
+    
+    parser.add_argument('--classifier', required=True, type=str, 
+        help='Type of classifier to use', choices=['lin', 'sklin', 'NCC'])
+
+    parser.add_argument('--n_way', required=False, type=float, default=5,
+        help='Number of classes present in few-shot task')
+
+    parser.add_argument('--k_shot', required=False, type=int, default=1,
+        help='Number of input channels data has to model', choices=[1, 3])
+    
+    parser.add_argument('--q_queries', required=False, type=int, default=1,
+        help='Number of input channels data has to model', choices=[1, 3])
+    
+
+    # GPU selection
+    parser.add_argument('--gpu', type=str, required=False, default='yeet',
+        help='CUDA object to pass model onto')
+
+
+    ## Data format input
+    parser.add_argument('--dims', required=False, type=int, default=2,
+        help='Number of dimensions input data has', choices=[1, 2])
+
+    parser.add_argument('--in_channels', required=False, type=int, default=3,
+        help='Number of input channels data has to model', choices=[1, 3])
+    
+    parser.add_argument('--rep_length', required=False, type=float, default=5,
+        help='Representation length of training data in seconds. How large should the samples be for training. Default \
+        uses the og_rep_length for the specific data specified in config file')
+
+    args = vars(parser.parse_args())
+
+    #########################
     # PARAM LOADING
     #########################
     # Loads in other expeirment params
@@ -34,15 +99,61 @@ if __name__ == '__main__':
         params = yaml.safe_load(stream)
 
     #########################
+    # COMBINE ARGUMENTS
+    #########################
+    params['adapters']['task_mode'] = args['adapter']
+    params['adapters']['num_splits'] = args['num_splits']
+
+    params['model']['dims'] = args['dims']
+    params['model']['in_channels'] = args['in_channels']
+
+    params['model']['encoder_fc_dim'] = args['model_fc_out']
+    params['model']['name'] = args['model_name']
+    params['model']['model_dir'] = args['model_dir']
+
+    params['task']['split'] = args['split']
+    params['task']['n_way'] = args['n_way']
+    params['task']['k_shot'] = args['k_shot']
+    params['task']['q_queries'] = args['q_queries']
+    params['task']['num_tasks'] = args['num_tasks']
+    params['classifier']['type'] = args['classifier']
+
+
+    params['base']['results_path'] = 'RESULT FILES/' + args['results_file'] + '.csv'
+
+    # GPU assignment
+    if args['gpu'] == 'yeet':
+        pass
+    else:
+        params['base']['cuda'] = args['gpu']
+
+    
+
+    # The number of samples expected in each training input sample
+    # If we dont give a value, we default to value in argparse. This is different 
+    # from training where we default to dataset og length, as we dont have real notion of that here
+    params['data']['sample_rep_length'] = int(args['rep_length'] * params['ft_params']['sample_rate'])
+
+
+    # Auto calculate the number of time frames our spectrogram has. Can calc frame rate as SR/Hop
+    # Can reduce to (rep length * sr) / hop
+    params['model']['input_tdim'] = math.ceil( params['data']['sample_rep_length']/params['ft_params']['hop_length'])
+
+    #########################
     # DEVICE SETTING
     #########################
     # Setting of cuda device
-    if params['base']['cuda'] == False:
-        device = torch.device('cpu')
-    elif params['base']['cuda']:
+    if params['base']['cuda'] == True:
         device = torch.device('cuda')
-    else: 
-        raise ValueError('Unclear use of CUDA vs CPU')
+
+    elif params['base']['cuda'] == 'cpu':
+        device = torch.device('cpu')
+
+    else:
+        cuda_int = params['base']['cuda']
+        device = torch.device('cuda:' + str(cuda_int))
+
+    print(device)
 
     #########################
     # SEED SETTING
@@ -75,6 +186,7 @@ if __name__ == '__main__':
     #########################
     # LOOP OVER MODELS
     #########################
+    all_results = []
     model_files = glob.glob(params['model']['model_dir'] + '/' +"*.pt")
     for idx, model_file_path in enumerate(model_files):
         trained_model_name = model_file_path.split('.')[0].split('/')[-1]
@@ -89,7 +201,7 @@ if __name__ == '__main__':
 
         print(data_params_file_list)
 
-        all_results = []
+        #all_results = []
         for idx, config_file in enumerate(data_params_file_list):
             # Grabs the dataset specific configs 
             with open(os.path.join(params['base']['path_to_configs'], config_file)) as stream:
@@ -116,7 +228,10 @@ if __name__ == '__main__':
             # if 'esc' not in config_file:
             #     continue
 
-            # if 'common' not in config_file:
+            # if 'nsynth' not in config_file:
+            #     continue
+
+            # if 'sc' not in config_file:
             #     continue
 
             # If we are extracting fix length data, we are less likely to exceed memory
@@ -138,8 +253,9 @@ if __name__ == '__main__':
                 gc.collect()
 
 
-        model_df = pd.DataFrame(all_results)
-        print(model_df)
+    model_df = pd.DataFrame(all_results)
+    print(model_df)
+    model_df.to_csv(params['base']['results_path'])
 
         
 

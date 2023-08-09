@@ -69,9 +69,7 @@ class Linear():
             accs.append(task_acc)
             losses.append(support_loss)
 
-        avg_acc = task_acc/x.shape[0]
-        support_loss = total_loss/x.shape[0]
-        return [avg_acc], support_loss
+        return accs, losses
 
     def catagorical_accuracy(self, targets, predictions):
         predictions = predictions.argmax(dim=1).view(targets.shape)

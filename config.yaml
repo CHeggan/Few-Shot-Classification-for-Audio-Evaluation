@@ -1,5 +1,5 @@
 ################################################################################
-# FEW-SHOT AUDIO EVAL CONFIGURATION FILE 
+# FEW-SHOT AUDIO EVAL CONFIGURATION FILE
 ################################################################################
 
 #########################
@@ -11,28 +11,25 @@ base:
   cuda: True
 
   path_to_configs: 'dataset_/configs_'
-  results_path: 'RESULT FILES/testing_1.csv'
+  results_path: #'RESULT FILES/resnet18_none_val_sample_stats.csv'
 
 
 #########################
 # MODEL/ENCODER
 #########################
 model:
-  model_dir: TRAINED/mtl_bn/
-  name: 'adapter_resnet18'
+  model_dir: #X:/Trained_model_storage/MT-SLVR Large Work/RN18 Main Models Extracted/none
+  name: #resnet18 #resnet18/ast_tiny etc Prefix are added to the model depending on what adapter is selected
+  dims: #2
+  in_channels: #3
+  input_tdim:  # Only needed for ast models # Now auto compute 
+  encoder_fc_dim: #1000
 
-  # Params for a model type of interest
-  resnet18:
-    encoder_fc_dim: 1000
+adapters:
+  #task_mode: None # series_adapters/parallel_adapters/bn/split for resnets
+              # adaptformer_series/adaptformer_parallel/og_adapter for asts
 
-  adapter_resnet18:
-    head_dim: 500
-    num_heads: 2
-    task_mode: 'bn'
-
-  split_resnet18:
-    num_heads: 2
-    head_dim: 500
+  num_splits: #1 # Number of splits in the fc layer in backbone
 
 
 #########################
@@ -46,19 +43,19 @@ extraction:
 # FEW-SHOT TASKS
 #########################
 task:
-  n_way: 5
-  k_shot: 1
-  q_queries: 1
-  num_tasks: 10000
+  n_way: #5
+  k_shot: #1
+  q_queries: #1
+  num_tasks: #10000
   batch_size: 1
-  split: test
+  split: #val # test/val
   hardness: [avg]
 
 #########################
 # CLASSIFIER
 #########################
 classifier:
-  type: sklin #linear/NCC/sklin
+  type: #sklin #linear/NCC/sklin
   adapt_steps: 20
   lr: 0.01
 
@@ -67,8 +64,9 @@ classifier:
 # DATA
 #########################
 data:
-  source_dataset: AS_BAL
-  stats_files: dataset_/stats_/AS_BAL_train_stats.npy
+  source_dataset: FSD50K
+  norm: sample #sample/global/None/l2 # We use per-sample wise stats by default
+  stats_file: dataset_/stats_/FSD50k_train_stats.npy
   ext: '.npy'
 
   in_dims: 2
@@ -93,7 +91,7 @@ use_feats:
   ESC: True
   Kaggle18_5s: True
   NSYNTH: False
-  VoxCeleb_5s: True
+  VoxCeleb_5s: False
   BirdClef_5s: True
 
   Watkins_5s: True
@@ -105,10 +103,9 @@ use_feats:
 
 
 # Fourier transform params
-ft_params: 
+ft_params:
   sample_rate: 16000
   n_mels: 128
   n_fft: 1024
   hop_length: 512
   power: 2
-

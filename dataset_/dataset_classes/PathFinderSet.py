@@ -11,7 +11,10 @@ import os
 import torch
 import numpy as np
 from tqdm import tqdm
+from sklearn import preprocessing
 from torch.utils.data import Dataset
+
+from dataset_.dataset_utils import per_sample_scale, nothing_func, given_stats_scale, enforce_length, split_tensor_and_enforce
 
 ################################################################################
 # PATH FINDER DATASET CLASS
@@ -20,11 +23,21 @@ class PathFinderSet(Dataset):
     def __init__(self, 
         classes,
         class_root_dir,
+        norm,
+        stats,
+        variable,
+        sample_rep_length,
         ext='.pt'):
 
         self.ext = ext
+        self.norm = norm
         self.classes = np.array(classes, dtype='U256')
         self.num_classes = len(self.classes)
+
+        self.variable = variable 
+        
+        # Set the fixed representation length of 
+        self.sample_rep_length = sample_rep_length
 
         self.class_paths = np.char.add(class_root_dir + '/', self.classes)
 
@@ -37,6 +50,41 @@ class PathFinderSet(Dataset):
 
         self.labels = self.int_labels
         self.unique_classes = torch.unique(self.labels).cpu().numpy()
+
+        # Set the normalisation function needed, default to not need stat path
+        self.norm_func = self.set_norm_func(norm, stats=stats)
+
+
+    def set_norm_func(self, norm, stats):
+        """Grabs the relevant normalisation function to use when getting data
+
+        Args:
+            norm (str): The normalisation types to use
+            stats_file (str): Path to the global norm stats of data being used
+
+        Raises:
+            ValueError: If normalisation type not recognised, inform user
+
+        Returns:
+            function: The normalisation function to call over incoming data
+        """
+        if norm == 'l2':
+            norm_func = preprocessing.normalize
+
+        elif norm == 'None':
+            norm_func = nothing_func
+
+        elif norm == 'sample':
+            norm_func = per_sample_scale
+
+        elif norm == 'global':
+            self.mu = stats[0]
+            self.sigma = stats[1]
+            norm_func = given_stats_scale
+        else:
+            raise ValueError('Passed norm type unsupported')
+
+        return norm_func
 
 
     def __getitem__(self, item):
@@ -51,10 +99,33 @@ class PathFinderSet(Dataset):
 
         sample.requires_grad = False
 
+        # Flattens sample so that it can be re-split into the representation length we want
+        # To make this work, all datasets get passed back as if they were variable (this needs
+        # to be accounted for in config for datasets)
+        sample = torch.flatten(sample).squeeze()
+        sample = split_tensor_and_enforce(sample, self.sample_rep_length)
+
+        # Make this work for samples that are not of same length and from a diff dataset, i.e NSYNTH
+        #   which is processed at 4s instead of the other at 5
+        # sample = enforce_length(sample, 80000)
+
         # # Combines multi slices into 1. This isnt idea but for sake of uniformity,
         # #   simplicity and speed, it worth it for the small info tradeoff
         # if sample.ndim > 1:
         #     sample = sample.mean(dim=0)
+
+        # Deals with normalisation of various types
+        if self.norm in ['global']:
+            sample = self.norm_func(sample, self.mu, self.sigma)
+
+        else:
+            sample = self.norm_func(sample)
+
+        # Some samples are coming in all 0s, when normalised they change to nans
+        # We catch that here and convert nans to 0s
+        if np.isnan(np.min(sample.numpy())):
+            np.nan_to_num(sample, copy=False, nan=0)
+
 
         return sample, label
 

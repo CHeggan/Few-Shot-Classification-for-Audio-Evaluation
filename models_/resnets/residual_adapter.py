@@ -657,7 +657,7 @@ def adapter_resnet18(dims, fc_out, in_channels, task_mode, num_tasks):
     return AdapterResNet(block=BasicBlockAdapater, layers=[2, 2, 2, 2], dims=dims, 
         out_dim_list=fc_out, in_channels=in_channels, task_mode=task_mode, num_tasks=num_tasks)
 
-def adater_resnet34(dims, fc_out, in_channels, task_mode, num_tasks):
+def adapter_resnet34(dims, fc_out, in_channels, task_mode, num_tasks):
     return AdapterResNet(block=BasicBlockAdapater, layers=[3, 4, 6, 3], dims=dims, 
         out_dim_list=fc_out, in_channels=in_channels, task_mode=task_mode, num_tasks=num_tasks)
 

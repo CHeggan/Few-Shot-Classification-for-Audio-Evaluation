@@ -2,6 +2,8 @@
 ###############################################################################
 # IMPORTS
 ###############################################################################
+import os
+
 import numpy as np
 
 from utils import load_backbone
@@ -15,7 +17,8 @@ from dataset_.dataset_utils import variable_collate, batch_to_log_mel_spec, \
 
 from dataset_.FeatureExtractor import FeatureExtractor
 from FewShotClassification import FewShotClassification
-from models_.encoder_selection import resnet_selection, adapter_resnet_selection, split_resnet_selection
+from models_.encoder_selection import resnet_selection, adapter_resnet_selection, split_resnet_selection, \
+    ast_selection, split_ast_selection, adapter_ast_selection
 
 ###############################################################################
 # SINGLE DATASET RUN
@@ -37,43 +40,94 @@ def single_dataset_run(params, data_params, model_file_path, device):
     elif params['task']['split'] == 'test':
         coi = test_classes
 
+
+    # If we want to use global stats, we have to load them in
+    if params['data']['norm'] == 'global':
+        data_files_path = os.path.join('dataset_', params['data']['source_dataset'])
+        stats = np.load(params['data']['stats_file'])
+    else:
+        stats = None
+
     dataset = PathFinderSet(classes=coi,
         class_root_dir=params['data_paths'][data_name],
+        norm=params['data']['norm'],
+        stats=stats,
+        sample_rep_length=params['data']['sample_rep_length'],
+        variable=data_params['target_data']['variable'],
         ext= params['data']['ext'])
 
     #########################
     # MODEL SELECTION
     #########################
-    if 'adapter' in params['model']['name']:
-        fc_list = [params['model'][ params['model']['name'] ]['head_dim']] * \
-            params['model'][ params['model']['name'] ]['num_heads']
+    # We select our model based on what adapters we are using
+    og_model_name = params['model']['name']
+    # Normal variants
+    if params['adapters']['task_mode'] == 'None':
 
-        model = adapter_resnet_selection(dims=params['data']['in_dims'],
-            fc_out_list=fc_list,
-            in_channels=params['data']['in_channels'],
-            task_mode=params['model'][ params['model']['name'] ]['task_mode'],
-            num_tasks=params['model'][ params['model']['name'] ]['num_heads'],
-            model_name=params['model']['name'])
+        if 'resnet' in params['model']['name']:
+            model = resnet_selection(dims=params['model']['dims'], model_name=params['model']['name'], 
+                fc_out=params['model']['encoder_fc_dim'], in_channels=params['model']['in_channels'])
+            
+        elif 'ast' in params['model']['name']:
+            model = ast_selection(fc_out=params['model']['encoder_fc_dim'], in_channels=params['model']['in_channels'],
+                                  input_tdim=params['model']['input_tdim'], model_name=params['model']['name'])
 
-        extra_params = {'task_int': 'all'}
-
-    elif 'split' in params['model']['name']:
-        fc_list = [params['model'][ params['model']['name'] ]['head_dim']] * \
-            params['model'][ params['model']['name'] ]['num_heads']
-
-        model = split_resnet_selection(dims=params['data']['in_dims'],
-            fc_out=fc_list,
-            in_channels=params['data']['in_channels'],
-            model_name=params['model']['name'])
-
-        extra_params = {'task_int': 'all'}
-
-    else:
-        model = resnet_selection(dims=params['data']['in_dims'], 
-            model_name=params['model']['name'], 
-            fc_out=params['model'][ params['model']['name'] ]['encoder_fc_dim'], 
-            in_channels=params['data']['in_channels'])
+        else:
+            raise Exception('Model variant unrecognised')
+        
+        fc_list = [params['model']['encoder_fc_dim']]
         extra_params = {}
+
+    # Split fc heads with adpaters
+    elif params['adapters']['task_mode'] in ['bn', 'series', 'parallel', 'og_adapter', 'adaptformer_series', 'adaptformer_parallel']:
+        params['model']['name'] = 'adapter_' + params['model']['name']
+        print(params['model']['name'])
+
+        fc_list = [int(np.floor(params['model']['encoder_fc_dim']/params['adapters']['num_splits']))]*params['adapters']['num_splits']
+        extra_params = {'task_int': 'all'}
+
+        if 'resnet' in params['model']['name']:
+            model = adapter_resnet_selection(dims=params['model']['dims'],
+                fc_out_list=fc_list,
+                in_channels=params['model']['in_channels'],
+                task_mode=params['adapters']['task_mode'],
+                num_tasks=params['adapters']['num_splits'],
+                model_name=params['model']['name'])
+
+        elif 'ast' in params['model']['name']:
+            model = adapter_ast_selection(fc_out=fc_list,
+                in_channels=params['model']['in_channels'],
+                input_tdim=params['model']['input_tdim'],
+                model_name=params['model']['name'],
+                num_tasks=params['adapters']['num_splits'],
+                adapter_type=params['adapters']['task_mode'])
+                
+        else:
+            raise Exception('Model variant unrecognised')
+        
+    # Split fc heads with no adpaters 
+    elif params['adapters']['task_mode'] == 'split':
+        params['model']['name'] = 'split_' + params['model']['name']
+
+        fc_list = [int(np.floor(params['model']['encoder_fc_dim']/params['adapters']['num_splits']))]*params['adapters']['num_splits']
+        extra_params = {'task_int': 'all'}
+
+        if 'resnet' in params['model']['name']:
+            model = split_resnet_selection(dims=params['model']['dims'],
+                fc_out=fc_list,
+                in_channels=params['model']['in_channels'],
+                model_name=params['model']['name'])
+            
+        elif 'ast' in params['model']['name']:
+            model = split_ast_selection(fc_out=fc_list,
+                                        in_channels=params['model']['in_channels'],
+                                        input_tdim=params['model']['input_tdim'],
+                                        model_name=params['model']['name'])
+
+        else:
+            raise Exception('Model variant unrecognised')
+        
+    params['model']['name'] = og_model_name
 
     model = load_backbone(model, model_file_path, verbose=True)
     model = model.to(device)
@@ -143,10 +197,7 @@ def single_dataset_run(params, data_params, model_file_path, device):
     results = []
     for hardness in params['task']['hardness']:
 
-        if ('adapter' in params['model']['name']) or ('split' in params['model']['name']):
-            model_fc_out=params['model'][ params['model']['name'] ]['head_dim'] * params['model'][ params['model']['name'] ]['num_heads']
-        else:
-            model_fc_out = params['model'][ params['model']['name'] ]['encoder_fc_dim']
+        model_fc_out = params['model']['encoder_fc_dim']
 
         fs_class = FewShotClassification(dataset=fs_dataset,
             params=params,

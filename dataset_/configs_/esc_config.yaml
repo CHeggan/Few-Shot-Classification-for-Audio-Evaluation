@@ -1,10 +1,10 @@
 
 target_data:
   # We want to use the stats from training
-  variable: False
+  variable: True
   name: 'ESC'
   norm: 'global'
-  type: 'raw' # variable_spec/spec/raw
+  type: 'variable_raw' # variable_spec/spec/raw
   
   all_test: False
 

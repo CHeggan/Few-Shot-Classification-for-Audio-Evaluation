@@ -92,6 +92,25 @@ def enforce_length(sample, desired_length):
 
 
 ##############################################################################
+# SPLIT TENSOR INTO SECTIONS OF FIXED LENGTH
+##############################################################################
+def split_tensor_and_enforce(tensor, split_size):
+    """
+    Takes in some 1d tensor and splits it up into sections. If there is remainder, 
+        it is paddeded to expected size
+    """
+    splits = list(torch.split(tensor, split_size, dim=0))
+
+    last_split = enforce_length(splits[-1].unsqueeze(0), split_size).squeeze()
+
+    splits = splits[:-1]
+    splits.append(last_split)
+
+    splits = torch.stack(splits, dim=0)
+    return splits
+
+
+##############################################################################
 # CONTRASTIVE TRANSFORMATIONS
 ##############################################################################
 class ContrastiveTransformations(object):

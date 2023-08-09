@@ -1,9 +1,9 @@
 target_data:
   # We want to use the stats from training
-  variable: False
-  name: 'NSYNTH' #Kaggle_18
+  variable: True
+  name: 'NSYNTH' 
   norm: 'global'
-  type: 'raw' # variable_spec/spec/raw
+  type: 'variable_raw' # variable_spec/spec/raw
   
   all_test: False
   

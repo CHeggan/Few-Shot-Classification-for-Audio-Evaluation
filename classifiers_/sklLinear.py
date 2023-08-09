@@ -102,6 +102,12 @@ class skLinear():
             clf = SGDClassifier(max_iter=self.adapt_steps, tol=1e-4, 
                 learning_rate='adaptive', eta0=self.lr, l1_ratio=0, alpha=0,
                 loss='log_loss', n_iter_no_change=2)
+            
+            if np.isnan(np.min(x_task_train)) or np.isnan(np.min(x_task_val)):
+                print('nan found')
+                np.nan_to_num(x_task_train, copy=False, nan=0)
+                np.nan_to_num(x_task_val, copy=False, nan=0)
+
             clf.fit(x_task_train, y_task_train)
 
             # We scale up the y task val to directly compare for loss but use majority for acc
