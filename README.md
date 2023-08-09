@@ -42,8 +42,9 @@ isbn="978-3-031-15919-0"
 # Few-Shot Evaluation
 In this framework we evaluate over few-shot classification tasks, each containing a support set and a query set. These are best though about as mini learning problems in the regime where you have limited labelled data. The support set is effectively a mini-training set, which we use to train a classifier, and the query set acts as analogously to a tests set. 
 
-![Alt text](repo_images/Few_shot_audio_classification.svg)
+<!-- ![Alt text](repo_images/Few_shot_audio_classification.svg) -->
 <img src="repo_images/Few_shot_audio_classification.svg">
+Example of 3 5-way 1-shot audio tasks, with support sets (left) and query sets (right). 
 
 In simplified code: For each pre-trained model and each considered dataset, the evaluation framework does the following:
 ```python 
