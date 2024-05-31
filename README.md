@@ -1,7 +1,7 @@
 # Few-Shot Classification for Acoustic Signals Codebase
 A brand new evaluation suite for a variety of few-shot acoustic classification tasks. 
 
-This is an active codebase in that we will be using and updating it alongside our primary research work behind he scenes. Each release of a new work will likely see an update or new branch of this evaluation suite. 
+
 
 
 
@@ -9,7 +9,17 @@ This is an active codebase in that we will be using and updating it alongside ou
  - 9/8/23: Public release of the codebase 
 
 
-## TODO
+## Upcoming Updates
+This codebase will be updated with code for two of our recent works:
+ - "On the Transferability of Large-Scale Self-Supervision to Few-Shot Audio Classification" ICASSP SASB 2024
+    - Compatibility with some pre-trained large-scale self-supervised speech models
+    - Variety of pass through options as per the original models
+ - "From Pixels to Waveforms: Evaluating Pre-trained Image Models for Few-Shot Audio Classification" IJCNN 2024
+    - Inclusion of pre-train image models
+    - These include both supervised pre-train (mainly fromm torchvision) and self-supervised (obtained from a variety of sources)
+    - Various audio input and normalisation options so that they can be used with audio models
+
+## Other TODO:
 There is still some work to be done for this codebase:
  - Notes on how to setup and format included datasets
  - Inclusion of a guide on how to setup custom datasets
