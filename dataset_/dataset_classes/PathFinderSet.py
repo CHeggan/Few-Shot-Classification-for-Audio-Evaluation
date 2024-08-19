@@ -54,7 +54,6 @@ class PathFinderSet(Dataset):
         # Set the normalisation function needed, default to not need stat path
         self.norm_func = self.set_norm_func(norm, stats=stats)
 
-
     def set_norm_func(self, norm, stats):
         """Grabs the relevant normalisation function to use when getting data
 
@@ -99,27 +98,34 @@ class PathFinderSet(Dataset):
 
         sample.requires_grad = False
 
-        # Flattens sample so that it can be re-split into the representation length we want
-        # To make this work, all datasets get passed back as if they were variable (this needs
-        # to be accounted for in config for datasets)
-        sample = torch.flatten(sample).squeeze()
-        sample = split_tensor_and_enforce(sample, self.sample_rep_length)
+        # If we give sample length == 0, we return the whole sample
+        if self.sample_rep_length == 0:
+            sample = torch.flatten(sample).squeeze()
 
-        # Make this work for samples that are not of same length and from a diff dataset, i.e NSYNTH
-        #   which is processed at 4s instead of the other at 5
-        # sample = enforce_length(sample, 80000)
-
-        # # Combines multi slices into 1. This isnt idea but for sake of uniformity,
-        # #   simplicity and speed, it worth it for the small info tradeoff
-        # if sample.ndim > 1:
-        #     sample = sample.mean(dim=0)
-
-        # Deals with normalisation of various types
-        if self.norm in ['global']:
-            sample = self.norm_func(sample, self.mu, self.sigma)
-
+        # Otherwise we sub select some section of it
         else:
-            sample = self.norm_func(sample)
+            # Flattens sample so that it can be re-split into the representation length we want
+            # To make this work, all datasets get passed back as if they were variable (this needs
+            # to be accounted for in config for datasets)
+            sample = torch.flatten(sample).squeeze()
+            sample = split_tensor_and_enforce(sample, self.sample_rep_length)
+
+            # Make this work for samples that are not of same length and from a diff dataset, i.e NSYNTH
+            #   which is processed at 4s instead of the other at 5
+            # sample = enforce_length(sample, 80000)
+
+            # # Combines multi slices into 1. This isnt idea but for sake of uniformity,
+            # #   simplicity and speed, it worth it for the small info tradeoff
+            # if sample.ndim > 1:
+            #     sample = sample.mean(dim=0)
+
+        # # Deals with normalisation of various types
+        # if self.norm in ['global']:
+        #     sample = self.norm_func(sample, self.mu, self.sigma)
+
+        # else:
+        #     sample = self.norm_func(sample)
+
 
         # Some samples are coming in all 0s, when normalised they change to nans
         # We catch that here and convert nans to 0s

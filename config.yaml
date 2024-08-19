@@ -7,7 +7,11 @@
 #########################
 base:
   seed: 42
+<<<<<<< Updated upstream
   num_workers: 0
+=======
+  num_workers: 2
+>>>>>>> Stashed changes
   cuda: True
 
   path_to_configs: 'dataset_/configs_'
@@ -54,10 +58,20 @@ task:
 #########################
 # CLASSIFIER
 #########################
+<<<<<<< Updated upstream
 classifier:
   type: #sklin #linear/NCC/sklin
   adapt_steps: 20
   lr: 0.01
+=======
+eval:
+  # Whether we do linear readout or fine-tune
+  fine_tune: # If TRUE, we need to use torch linear classifier
+  classifier: #sklin #linear/NCC/sklin
+  # Only relevant for linear heads
+  adapt_steps: 100
+  lr: 1 # sklin has been using 0.1 this whole time
+>>>>>>> Stashed changes
 
 
 #########################

@@ -36,6 +36,9 @@ def per_sample_scale(x):
 def given_stats_scale(x, mu, sigma):
     return (x - mu) / sigma
 
+def min_max_scale(x):
+    return (x-x.min()) / (x.max() - x.min())
+
 
 ##############################################################################
 # CIRCULAR PADDING AND ENFORCED LENGTH CROPPING FUNCTIONS

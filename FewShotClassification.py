@@ -5,9 +5,21 @@ An largely enclosed few-shot classification class with accompanying methods. Set
     around classifiers, and task samplers
 """
 import sys
+<<<<<<< Updated upstream
 import torch
 import numpy as np
 from tqdm import tqdm
+=======
+import time
+
+import torch
+import numpy as np
+from tqdm import tqdm
+import torch.nn.utils.rnn as rnn_utils
+
+from classifiers_.Linear import Linear
+from classifiers_.sklLinear import skLinear
+>>>>>>> Stashed changes
 from classifiers_.NearestCentroid import NCC
 from classifiers_.sklLinear import skLinear
 from dataset_.dataset_classes.FastDataLoader import FastDataLoader
@@ -110,7 +122,7 @@ class FewShotClassification():
 
     def setup_taskloader(self, params, dataset, hardness, classifier, variable, device):
 
-        if variable:
+        if variable or int(self.params['data']['sample_rep_length']) == 0:
             col_fn = variable_collate
             # For variable sets, much higher chance that we break through memory
             #   We take some hit in speed by setting batch size =1 in this case
@@ -163,6 +175,10 @@ class FewShotClassification():
             if self.variable:
                 x_support, x_queries, query_sample_nums, y = self.batch_fn(batch, self.params['task']['batch_size'])
 
+                # Add norm to both supports and queries
+                f = f/f.norm(dim=-1, keepdim=True)
+                f = f/f.norm(dim=-1, keepdim=True)
+
                 accs, losses = self.classifier.variable_length(x_support=x_support, 
                     x_query=x_queries, 
                     q_num=query_sample_nums, 
@@ -190,6 +206,7 @@ class FewShotClassification():
         for batch_index, batch in enumerate(self.task_loader):
             # Prep batch and move to GPU
             if self.variable:
+
                 x_support, x_queries, query_sample_nums, y = self.batch_fn(batch, self.params['task']['batch_size'])
 
                 x_support = x_support.unsqueeze(2)
@@ -210,8 +227,48 @@ class FewShotClassification():
 
                 # x_support = torch.stack(all_x_support)
 
+<<<<<<< Updated upstream
                 x_support = additional_batch_fn(x_support, ft_params=self.params['ft_params'])
                 x_support = model.forward(x_support, **extra_model_params)
+=======
+                x_support = additional_batch_fn(x_support, self.params['ft_params'])
+                x_queries = additional_batch_fn(x_queries, self.params['ft_params'])
+
+                # x_support = x_support.repeat(1, 3, 1, 1)
+                # x_queries = x_queries.repeat(1, 3, 1, 1)
+
+
+                # x_support_list = []
+                # x_queries_list = []
+                # for sup in x_support:
+                #     x_support_list.append(self.preprocess_func(sup.detach().cpu()))
+
+                # for q in x_queries:
+                #     x_queries_list.append(self.preprocess_func(q.detach().cpu()))
+
+                # x_support = torch.stack(x_support_list)
+                # x_queries = torch.stack(x_queries_list)
+
+                # x_support = x_support.cuda()
+                # x_queries = x_queries.cuda()
+
+
+                # with torch.no_grad():
+                # Control for if we want to use the pre-trained ssl models from s3prl
+                if mod_forward_func == None:
+                    x_support = model.forward(x_support, **extra_model_params)
+                    x_queries = model.forward(x_queries, **extra_model_params)
+
+                else:   
+                    x_support = x_support.squeeze().unsqueeze(1)
+                    x_support = mod_forward_func(model, x_support)
+                    x_queries = mod_forward_func(model, x_queries)
+
+                # Add norm to supports and queries
+                x_support = x_support/x_support.norm(dim=-1, keepdim=True)
+                x_queries = x_queries/x_queries.norm(dim=-1, keepdim=True)
+
+>>>>>>> Stashed changes
 
                 x_support = x_support.reshape(og_support_shape[0], og_support_shape[1], -1)
 
@@ -226,14 +283,30 @@ class FewShotClassification():
                 all_accs = all_accs + accs
 
             elif not self.variable:
+                # If rep length == 0 we want to pad batches so each sample is og length
+                if int(self.params['data']['sample_rep_length']) == 0:
+                    x, y = batch
+                    x = rnn_utils.pad_sequence(x, batch_first=True, padding_value=0)
+                    batch = (x, y)
+
                 x, y = self.batch_fn(batch, self.params['task']['batch_size'])
                 x = x.unsqueeze(2)
 
                 og_x_shape = x.shape
                 x = x.reshape(og_x_shape[0]*og_x_shape[1], og_x_shape[-2], og_x_shape[-1])
-                x = additional_batch_fn(x, ft_params=self.params['ft_params'])
+                x = additional_batch_fn(x, self.params['ft_params'])
 
-                x = model.forward(x, **extra_model_params)
+                # Control for if we want to use the pre-trained ssl models from s3prl
+                if mod_forward_func == None:
+                    x = model.forward(x, **extra_model_params)
+
+                else:   
+                    x = x.squeeze().unsqueeze(1)
+                    x = mod_forward_func(model, x)
+
+                # x = model.forward(x, **extra_model_params)
+                # Performance improving norm
+                x = x/x.norm(dim=-1, keepdim=True)
 
                 x = x.reshape(og_x_shape[0], og_x_shape[1], -1)
 

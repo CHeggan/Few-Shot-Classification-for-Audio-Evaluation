@@ -12,6 +12,9 @@ from models_.resnets.residual_adapter import adapter_resnet18, adapter_resnet34
 from models_.resnets.resnets import resnet18, resnet34, resnet50, resnet101, resnet152
 from models_.resnets.split_resnet import split_resnet18, split_resnet34, split_resnet50, split_resnet101, split_resnet152
 
+# Experimental 
+from models_.resnets.seq_resnets import seq_resnet18, seq_resnet34
+
 
 # Import all asts and vit models
 from models_.transformers.base_asts import ast_tiny, ast_small, ast_base
@@ -79,6 +82,29 @@ def split_resnet_selection(dims, fc_out, in_channels, model_name='split_resnet18
         raise ValueError('Split ResNet name not recognised')
 
     return model
+
+
+########################################
+# SEQUENTIAL RESNETS
+########################################
+def seq_resnet_selection(dims, fc_out, in_channels, model_name='seq_resnet18'):
+    if model_name == 'seq_resnet18':
+        model = seq_resnet18(dims, feat_dim=fc_out, in_channels=in_channels)
+    elif model_name == 'seq_resnet34':
+        model = seq_resnet34(dims, feat_dim=fc_out, in_channels=in_channels)
+
+
+    # elif model_name == 'seq_resnet50':
+    #     model = resnet50(dims, fc_out, in_channels)
+    # elif model_name == 'resnet101':
+    #     model = resnet101(dims, fc_out, in_channels)
+    # elif model_name == 'resnet152':
+    #     model = resnet152(dims, fc_out, in_channels)
+    # else:
+    #     raise ValueError('ResNet name not recognised')
+
+    return model
+
 
 
 ###############################################################################

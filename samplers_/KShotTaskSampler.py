@@ -52,6 +52,25 @@ class KShotTaskSampler(Sampler):
         else:
             self.num_batches = math.ceil(num_tasks / batch_size)
 
+        # Store a copy of unique classes so that we can check if we can make the setting work
+        # Below we delete classes if not enough samples to cover k + q, but if num classes ends up < n_way
+        # We need to restart with q = 1
+        og_unique_classes = self.dataset.unique_classes
+
+        # Makes sure all classes have enough samples, deletes them out of sampling if not
+        self.check_classes()
+        print(self.dataset.unique_classes)
+
+        # If number of available classes end up below what we need, we first try to set q=1 
+        if len(self.dataset.unique_classes) < self.n_way:
+            self.dataset.unique_classes = og_unique_classes
+            self.q_queries = 1
+            self.check_classes()
+
+        print(self.dataset.unique_classes)
+
+
+    def check_classes(self):
         # Generate a list of tensors that correspond with unique classes
         # Generate a full dictionary (class_name, relevant indices) for the dataset
         self.label_dicts = {}

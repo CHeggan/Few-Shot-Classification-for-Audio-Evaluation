@@ -19,7 +19,7 @@ import argparse
 import numpy as np
 import pandas as pd
 
-from utils import set_seed
+from fs_utils import set_seed
 from single_set import single_dataset_run
 
 ################################################################################
@@ -67,10 +67,10 @@ if __name__ == '__main__':
         help='Number of classes present in few-shot task')
 
     parser.add_argument('--k_shot', required=False, type=int, default=1,
-        help='Number of input channels data has to model', choices=[1, 3])
+        help='Number of input channels data has to model')
     
     parser.add_argument('--q_queries', required=False, type=int, default=1,
-        help='Number of input channels data has to model', choices=[1, 3])
+        help='Number of input channels data has to model')
     
 
     # GPU selection
@@ -87,7 +87,8 @@ if __name__ == '__main__':
     
     parser.add_argument('--rep_length', required=False, type=float, default=5,
         help='Representation length of training data in seconds. How large should the samples be for training. Default \
-        uses the og_rep_length for the specific data specified in config file')
+        uses the og_rep_length for the specific data specified in config file.\
+        If given value is 0, we pad sequences per batch and use whole samples. Note this does not work with AST models')
 
     args = vars(parser.parse_args())
 
@@ -188,6 +189,7 @@ if __name__ == '__main__':
     #########################
     all_results = []
     model_files = glob.glob(params['model']['model_dir'] + '/' +"*.pt")
+    print('yo', model_files)
     for idx, model_file_path in enumerate(model_files):
         trained_model_name = model_file_path.split('.')[0].split('/')[-1]
 
@@ -233,6 +235,10 @@ if __name__ == '__main__':
 
             # if 'sc' not in config_file:
             #     continue
+
+            # If rep length is given as 0 (meaning we pad), we force datasets to operate as variable so that they can be collated properly
+            if int(args['rep_length']) == 0:
+                data_params['target_data']['variable'] = False
 
             # If we are extracting fix length data, we are less likely to exceed memory
             if data_params['target_data']['variable'] == False:

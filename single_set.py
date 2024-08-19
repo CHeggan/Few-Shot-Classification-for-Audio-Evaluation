@@ -6,7 +6,7 @@ import os
 
 import numpy as np
 
-from utils import load_backbone
+from fs_utils import load_backbone
 from dataset_.prep_batch_fns import basic_flexible_prep_batch
 from dataset_.dataset_classes.FastDataLoader import FastDataLoader
 from dataset_.dataset_classes.PathFinderSet import PathFinderSet
@@ -18,7 +18,7 @@ from dataset_.dataset_utils import variable_collate, batch_to_log_mel_spec, \
 from dataset_.FeatureExtractor import FeatureExtractor
 from FewShotClassification import FewShotClassification
 from models_.encoder_selection import resnet_selection, adapter_resnet_selection, split_resnet_selection, \
-    ast_selection, split_ast_selection, adapter_ast_selection
+    ast_selection, split_ast_selection, adapter_ast_selection, seq_resnet_selection
 
 ###############################################################################
 # SINGLE DATASET RUN
@@ -64,7 +64,11 @@ def single_dataset_run(params, data_params, model_file_path, device):
     # Normal variants
     if params['adapters']['task_mode'] == 'None':
 
-        if 'resnet' in params['model']['name']:
+        if 'seq_resnet' in params['model']['name']:
+            model = seq_resnet_selection(dims=params['model']['dims'], model_name=params['model']['name'], 
+                fc_out=params['model']['encoder_fc_dim'], in_channels=params['model']['in_channels'])
+
+        elif 'resnet' in params['model']['name']:
             model = resnet_selection(dims=params['model']['dims'], model_name=params['model']['name'], 
                 fc_out=params['model']['encoder_fc_dim'], in_channels=params['model']['in_channels'])
             
@@ -131,7 +135,38 @@ def single_dataset_run(params, data_params, model_file_path, device):
 
     model = load_backbone(model, model_file_path, verbose=True)
     model = model.to(device)
+<<<<<<< Updated upstream
     model.eval()
+=======
+
+    # from torchvision.models import resnet50, ResNet50_Weights
+    # weights = ResNet50_Weights.IMAGENET1K_V2
+    # model = resnet50(weights=weights).to(device)
+    # import torch.nn as nn
+    # class Identity(nn.Module):
+    #     def __init__(self):
+    #         super(Identity, self).__init__()
+            
+    #     def forward(self, x):
+    #         return x
+
+    # model.fc = Identity()
+
+    model.eval()
+    # extra_params = {}
+
+    #########################
+    # FINE-TUNING DECISION
+    #########################
+    if params['eval']['fine_tune']:
+        model.train()
+        # We use a work around here and enforce we use gradients
+        torch.set_grad_enabled(True)
+    elif not params['eval']['fine_tune']:
+        model.eval()
+    else:
+        raise ValueError('Cant decide whether to fine-tune or not')
+>>>>>>> Stashed changes
 
     #########################
     # ADDITIONAL DATA FUNCS
@@ -150,8 +185,9 @@ def single_dataset_run(params, data_params, model_file_path, device):
     #########################
     # for variable length we need a different collaction function
     # Defines the datasets to be used
-    if data_params['target_data']['variable']:
+    if data_params['target_data']['variable'] or int(params['data']['sample_rep_length']) == 0:
         col_fn = variable_collate
+        print(col_fn)
     else:
         col_fn = None
 

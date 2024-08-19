@@ -5,3 +5,4 @@
 *.csv
 gen_exper.py
 
+\models_\s3prl\checkpoints\*

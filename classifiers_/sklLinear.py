@@ -108,6 +108,8 @@ class skLinear():
                 np.nan_to_num(x_task_train, copy=False, nan=0)
                 np.nan_to_num(x_task_val, copy=False, nan=0)
 
+            # print(x_task_train.shape, y_task_train.shape)
+
             clf.fit(x_task_train, y_task_train)
 
             # We scale up the y task val to directly compare for loss but use majority for acc

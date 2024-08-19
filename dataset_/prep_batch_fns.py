@@ -15,15 +15,15 @@ class CreatePrepBatch():
     # would be nice to have a uniform collate and prep batch across both
 
 def basic_flexible_prep_batch(device, data_type='float', input_size=None, variable=False):
-    """Is the parent function for batch prepping. Returns an initialised function 
+    """Is the parent function for batch prepping. Returns an initialised function
 
     Args:
         device (torch CUDA object): The CUDA device we want to load data to
-        data_type (str, optional): The type to convert the input data to, can be 
+        data_type (str, optional): The type to convert the input data to, can be
             float or double
-        input_size (int, optional): The expected size of input to the model. This allows us 
+        input_size (int, optional): The expected size of input to the model. This allows us
             to split up data and stack it if is needed. Kind of dynamic splitting
-        variable (boolean, optional): Whether the data incoming is variable length 
+        variable (boolean, optional): Whether the data incoming is variable length
             samples or not
     """
     def inner_prep_batch(batch, labels=True):
@@ -56,7 +56,7 @@ def basic_flexible_prep_batch(device, data_type='float', input_size=None, variab
             # If we are using labels, we do proper formatting
             if labels:
                 y = torch.stack(y)
-        
+
             if data_type == 'float':
                 x = x.float().to(device)
                 y = y.float().to(device)
@@ -86,7 +86,7 @@ def basic_flexible_prep_batch(device, data_type='float', input_size=None, variab
 # FIXED LENGTH BATCHING FUNCTION (TRAIN AND EVAL)
 ###############################################################################
 def prep_batch_fixed(n_way, k_shot, q_queries, device, trans):
-    """Is the parent function for batch prepping. Returns an initialised function 
+    """Is the parent function for batch prepping. Returns an initialised function
 
     Args:
         n_way (int)): The number of ways in classification task
@@ -137,10 +137,99 @@ def prep_batch_fixed(n_way, k_shot, q_queries, device, trans):
     return prep_batch_fixed
 
 ###############################################################################
-# VARIABLE LENGTH EVAL BATCH FUNCTION (1D INPUT SIGNALS )
+# VARIABLE LENGTH EVAL BATCH FUNCTION (1D INPUT SIGNALS ) - BETTER OPTIMISED
 ###############################################################################
 def prep_var_eval_1d(n_way, k_shot, q_queries, device, trans):
-    """Is the parent function for batch prepping. Returns an initialised function 
+    """Is the parent function for batch prepping. Returns an initialised function
+
+    Args:
+        n_way (int)): The number of ways in classification task
+        k_shot (int): Number of support vectors in a given task
+        q_queries (int): Number of query vectors in a given task
+        device (torch CUDA object): The CUDA device we want to load data to
+        trans (boolean): Whether to apply transformer specific changes to data batching
+    """
+    def prep_var_eval(batch, meta_batch_size):
+        """The child prep batch function. Takes some batch and processes it
+            into proper tasks before moving it to a GPU for calculations. Works
+            for teh variable length sets at eval/test time
+
+        Args:
+            batch (Tensor): The unformatted batch of data and tasks
+            meta_batch_size (int): The expected batch size
+
+        Returns:
+            Tensor, Tensor: The formatted x, y tensor pairs
+        """
+        x, y = batch
+
+        # We re-calculate q based on input as we allow it to be changed in sampler if nu_classes is weird
+        q_queries = int( (len(x)/(meta_batch_size*n_way)) - k_shot )
+
+        end_index = 0
+        supports, queries = [], []
+        for i in range(meta_batch_size):
+            for idx, samples in enumerate( x[ end_index : end_index + (n_way*k_shot) ] ):
+                supports.append(samples)
+            end_index += n_way*k_shot
+            for idx, samples in enumerate( x[ end_index : end_index + (n_way*q_queries) ] ):
+                queries.append(samples)
+            end_index += n_way*q_queries
+
+        # Subsamples supports
+        x_support_list = [samples[np.random.choice(samples.shape[0])] for samples in supports]
+        # Stacks and reshapes chosen supports
+        x_support = torch.stack(x_support_list).reshape(meta_batch_size, (n_way*k_shot), x[0].shape[-1])
+
+        # x_support = torch.zeros(meta_batch_size*(n_way*k_shot), x[0].shape[-1])
+        # for idx, samples in enumerate(supports):
+        #     ind = np.random.choice(samples.shape[0])
+        #     x_support[idx] = samples[ind]
+
+        # Grab number of subclips in each query
+        query_sample_nums = [samples.shape[0] for samples in queries]
+        x_queries = torch.cat(queries)
+
+        # x_queries = torch.zeros(1, x[0].shape[-1])
+        # query_sample_nums = []
+        # for idx, samples in enumerate(queries):
+        #     #print(samples.shape)
+        #     query_sample_nums.append(samples.shape[0])
+        #     for j, samp in enumerate(samples):
+        #         if samp.ndim == 1:
+        #             samp = samp.unsqueeze(0)
+        #         x_queries = torch.cat((x_queries, samp), 0)
+
+        # # Cuts the first sample as it was just zeros
+        # x_queries = x_queries[1:]
+
+        # Generates and sets up the y value arary
+        y_tr = torch.arange(0, n_way, 1/k_shot)
+        y_val = torch.arange(0, n_way, 1/q_queries)
+        y = torch.cat((y_tr, y_val))
+        # Creates a batch dimension and then repeats across it
+        y = y.unsqueeze(0).repeat(meta_batch_size, 1)
+
+        # Changes data type and moves to passed device(CUDA)
+        y = y.long().to(device)
+
+        if trans:
+            x_support = torch.transpose(x_support, 2, 3)
+            x_queries = torch.transpose(x_queries, 1, 2)
+            x_support = x_support.float().to(device)
+            x_queries = x_queries.float().to(device)
+        else:
+            x_support = x_support.float().to(device)
+            x_queries = x_queries.float().to(device)
+
+        return x_support, x_queries, query_sample_nums, y
+    return prep_var_eval
+
+###############################################################################
+# VARIABLE LENGTH EVAL BATCH FUNCTION (1D INPUT SIGNALS ) - OLD & SLOW
+###############################################################################
+def prep_var_eval_1d_slow(n_way, k_shot, q_queries, device, trans):
+    """Is the parent function for batch prepping. Returns an initialised function
 
     Args:
         n_way (int)): The number of ways in classification task
