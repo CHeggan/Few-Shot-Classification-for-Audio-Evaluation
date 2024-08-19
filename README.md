@@ -7,6 +7,7 @@ A brand new evaluation suite for a variety of few-shot acoustic classification t
 
 ## News & Updates
  - 9/8/23: Public release of the codebase 
+ - 19/8/24: Codebase update to include work on transfer learning
 
 
 ## Upcoming Updates
@@ -27,8 +28,8 @@ There is still some work to be done for this codebase:
 
 
 
-## Citation
-This codebase was developed for our most recent works [MT-SLVR](https://github.com/CHeggan/MT-SLVR) and [MetaAudio](https://github.com/CHeggan/MetaAudio-A-Few-Shot-Audio-Classification-Benchmark). If you find this repo useful or utilise it in your work, please consider citing our works:
+## Citation 
+This codebase was initially developed for our most recent works [MT-SLVR](https://github.com/CHeggan/MT-SLVR) and [MetaAudio](https://github.com/CHeggan/MetaAudio-A-Few-Shot-Audio-Classification-Benchmark). If you find this repo useful or utilise it in your work, please consider citing our works:
 
 ```
 @misc{heggan2023mtslvr,
@@ -54,6 +55,35 @@ publisher="Springer International Publishing",
 pages="219--230",
 isbn="978-3-031-15919-0"
 }
+```
+
+We also include code relating to our works [Pixels to Waveforms](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=_1R5aa8AAAAJ&citation_for_view=_1R5aa8AAAAJ:UeHWp8X0CEIC) and [On the Transferability of Large-Scale Self-Supervision...](https://arxiv.org/abs/2402.01274). If you use the transfer learning apsect of this codebase, please consider citing teh following:
+
+```
+@inproceedings{f71e00d39bfe40739c3aeddbff1a1037,
+title = "From pixels to waveforms: Evaluating pre-trained image models for few-shot audio classification",
+author = "Calum Heggan and Hospedales, {Timothy M.} and Sam Budgett and {Yaghoobi Vaighan}, Mehrdad",
+year = "2024",
+month = mar,
+day = "15",
+language = "English",
+booktitle = "Proceedings of the International Joint Conference on Neural Networks (IJCNN)",
+note = "International Joint Conference on Neural Networks, IJCNN 2024 ; Conference date: 30-06-2024 Through 05-07-2024",
+url = "https://2024.ieeewcci.org/",
+}
+```
+
+```
+@INPROCEEDINGS{10626094,
+  author={Heggan, Calum and Budgett, Sam and Hospedales, Tim and Yaghoobi, Mehrdad},
+  booktitle={2024 IEEE International Conference on Acoustics, Speech, and Signal Processing Workshops (ICASSPW)}, 
+  title={On the Transferability of Large-Scale Self-Supervision to Few-Shot Audio Classification}, 
+  year={2024},
+  volume={},
+  number={},
+  pages={515-519},
+  keywords={Correlation;Conferences;Self-supervised learning;Benchmark testing;Signal processing;Feature extraction;Acoustics;Self-Supervision;Few-Shot Learning},
+  doi={10.1109/ICASSPW62465.2024.10626094}}
 ```
 
 
@@ -94,7 +124,7 @@ The evaluation suite contains a variety of options for more advanced evaluation 
 
 
 ## Environment
-We are currently working on re-factoring the environment for this codebase.
+We are currently working on re-factoring the environment for this codebase. With the inclusion of transfer learning components (in particular from torchvision and s3prl), a suitable fits all environment can be tricky, and so we recommend builing a separate enviroment for each main evaluation protocol for the codebase (1 for basic eval of models, 1 for image-transfer, 1 for speech and s3prl). 
 
 ## Datasets & Processing
 We include support for 10 total datasets for evaluation. Many of these are from the [MetaAudio](https://github.com/CHeggan/MetaAudio-A-Few-Shot-Audio-Classification-Benchmark/tree/main) work, however some were added in [MT-SLVR](https://github.com/CHeggan/MT-SLVR). Datasets currently supported by default are:
@@ -181,3 +211,50 @@ We note that the method implemented (i.e. greedy search) is incredibly expensive
 ### Random Tasks
 In other few-shot works, evaluation has also been for the random N-Way K-Shot setting. We implement a task sampler which is capable of generating and solving these tasks. This task sampler 'AnyWayShotSampler' is present in the codebase but is currently not setup to function.
 
+
+## Transfer Learning
+This codebase now implements experiments for both [Pixels to Waveforms](https://scholar.google.com/citations?view_op=view_citation&hl=en&user=_1R5aa8AAAAJ&citation_for_view=_1R5aa8AAAAJ:UeHWp8X0CEIC) and [On the Transferability of Large-Scale Self-Supervision...](https://arxiv.org/abs/2402.01274). These experiments generally included utilising a pre-trained model (either imagery or speech based) and applying it to the standard few-shot evaluation procedure as discussed above. More details about the types of experiments ran can be found in the respective papers.
+
+
+### Image-Based Transfer Learning
+Within the codebase we have a total of 107 usable pre-trained image models ready to go. These are split between supervised and self-supervised pre-training. 
+
+#### Self-Supervised Model Setup
+Supervised image-based models are taken from the TorchVision package and as such are accessible by default (no extra downloads needed). The self-supervised models however have to be downloaded. Steps to setup:
+ - Download the model folder 'image_checkpoints' from [Google Drive](https://drive.google.com/drive/folders/1odfioT7V2Wc1xObUHWH8PE1jZgKB_0f0?usp=sharing)
+ - Place folder of models wherever you like
+ - Modify the model base paths within the files inside 'models/imagenet_pretrained'
+
+#### Running an Experiment
+Experiments are run very similarly to the baselines but with some key factors changed. 
+ - Experiments for image-based models are run using 'imagenet_main.py'
+
+A sample run may look something like:
+
+```bash
+python imagenet_main.py --model_name dino_vits14 --num_tasks 3000 --split test --rep_length 5 --classifier sklin --results_file simsiam --fine_tune False --n_way 5 --k_shot 1 --q_queries 5 --in_norm True --in_resize True
+```
+
+#### Additional Variables
+Within the ImageNet experiments, we investigate additional variables named 'in_norm' (whether or not to apply ImageNet normalisation to incoming data) and 'in_resize' (wether or not to resize incoming spectrogram to standard ImageNet sizes). When running an experiment these can either be set to True or False (as can be seen above).
+
+
+
+### SSL Speech Transfer Learning
+We consider a total of 13 large-scale self-supervised speech models. Although there are more available within the SUPERB benchmark, we sub-select for consistent pre-training dataset (LS960). This is covered more in the paper.
+
+#### Model Download
+Included models run using a combination of configuration code (already included in teh checkpoint) and downloaded checkpoints (not already included). To setup the checkpoints:
+ - Download the folder named 'checkpoints' from [here](https://drive.google.com/drive/folders/1odfioT7V2Wc1xObUHWH8PE1jZgKB_0f0?usp=sharing)
+ - Place the folder in the 's3prl'
+ - Should be all good
+
+#### Running an Experiment
+Experiments are run very similarly to the baselines but with some key factors changed. 
+ - Experiments for speech-based models are run using 's3prl_main.py'
+
+A sample run may look something like:
+
+```bash
+python .\s3prl_main.py  --model_name tera --num_tasks 10000 --split test --classifier sklin --results_file wavlm_5s_10000_sklin_test --dims 1 --in_channels 1 --rep_length 5 --fine_tune False
+```
